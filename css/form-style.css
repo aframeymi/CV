@@ -1,0 +1,58 @@
+/* to make the font size more adaptable i set these setting and then i use REM as a measurement 
+    for the sizes in the page */
+    html {
+        font-size: 62.5%;
+        text-align: center;
+        height: auto;
+    }
+    
+    header img {
+        width: 7rem;
+        height: 7rem;
+        margin: 1rem auto;
+    }
+    
+    header {
+        box-shadow: 0 0.5px 2px lightgrey;
+    }
+    
+    form {
+        text-align: center;
+    }
+    
+    form input, form select, form option {    
+        padding: 5px 1rem;
+        border: 0.7px solid #A0D0DF;
+        margin: 2px;
+        border-radius: 5px;
+        width: 30rem;
+    }
+    
+    form input:focus, select:focus {
+        outline: 0.7px solid #A0D0DF;
+        color: #A0D0DF;
+    }
+    
+    form input::placeholder {
+        color: #A0D0DF;
+    }
+    
+    form input:focus {
+        border: none !important;
+    }
+    
+    form input[type="submit"] {
+        background-color: #A0D0DF;
+        color: white;
+        cursor: pointer;
+    }
+    
+    form input[type="checkbox"] {    
+        width: auto;
+        margin: 3px;
+    }
+    
+    form label {
+        font-size: 1.1rem;
+        border: none;
+    }
