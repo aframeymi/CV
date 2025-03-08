@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- these are the meta tags of them page and stylesheets that i use to apply the same style
+         for both sign in and sign up page -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="images/logo.png">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/form-style.css">
+    <title>Community Voice/Sign IN</title>
+</head>
+
+
+<body>
+    <div class="navbar">
+        <a href="home.html" class="image"><img src="images/logo.png" width="50px" height="50px"></a>
+        <div class="navlinks">
+        <a href="home.html" class="navhome">Home</a>
+        <a href="report.html" class="naverep">Report</a>
+        <a href="track.html" class="navtra">Track</a>
+        <a href="sign_in.html">Login</a>
+        <a href="sign_up.html">Register</a>
+        <a href="graph.html">Graph</a>
+        </div>
+        <a href="profile.html" class="navprofile"><img src="images/profile-pic.jpg" "></a>
+        <a href="profile.html" class="navprofile" >Sadaf Nawaby</a>
+    </div>
+
+    <!-- this is the whole content of the page -->
+    <div id="content">
+        <h1>WELCOME</h1>
+        <img src="images/profile-pic.jpg" alt="profile-pic">
+        <!-- as far as we don't have any database yet, so when user submit the email and password 
+             it will go to the index or the main page for now -->
+        <form action="index.html" target="_self">
+            <!-- these are requied because we need to check them wheater they are the same with the
+                 database data or not when we connect a database to it -->
+            <input type="email" placeholder="Email" required> <br>
+            <input type="password" placeholder="Password" required> <br>
+            <input type="submit" id="sign-in" value="SIGN IN">
+        </form>
+        <!-- when user is new then it will open the sign up page for the user -->
+        <p>New in here? <a href="sign_up.html">SIGN UP</a></p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- these are the meta tags of them page and stylesheets that i use to apply the same style
+         for both sign in and sign up page -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="images/logo.png">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/form-style.css">
+    <title>Community Voice/Sign UP</title>
+</head>
+
+
+
+<body>
+    <div class="navbar">
+        <a href="home.html" class="image"><img src="images/logo.png" width="50px" height="50px"></a>
+        <div class="navlinks">
+        <a href="home.html" class="navhome">Home</a>
+        <a href="report.html" class="naverep">Report</a>
+        <a href="track.html" class="navtra">Track</a>
+        <a href="sign_in.html">Login</a>
+        <a href="sign_up.html">Register</a>
+        <a href="graph.html">Graph</a>
+        </div>
+        <a href="profile.html" class="navprofile"><img src="images/profile-pic.jpg" "></a>
+        <a href="profile.html" class="navprofile" >Sadaf Nawaby</a>
+    </div>
+
+    <div id="background-photo">
+        <img src="images/brunderburg.jpg" alt="" width="100%" height="300px">
+    </div>
+
+    <div id="content">
+        <h1>REGISTER</h1>
+        <!-- as far as we don't have any database yet, so when user submit the email and password 
+             it will go to the index or the main page for now -->
+        <form action="index.html" target="_self">
+            <!-- these are requied because we need to check them wheater they are the same with the
+                 database data or not when we connect a database to it -->
+            <input type="text" placeholder="Name" required> <br>
+            <input type="text" placeholder="Surname" required> <br>
+            <input type="number" placeholder="Phone Number" required> <br>
+            <input type="email" placeholder="Email" required> <br>
+            <input type="password" placeholder="Password" required> <br>
+            <input type="password" placeholder="Confirm Password" required> <br>
+            <select name="language" id="language" style="color: #A0D0DF;" required>
+                <option value="English" selected>English</option>
+                <option value="German">German</option>
+                <option value="Persian">Persian</option>
+                <option value="French">French</option>
+            </select> <br>
+            <label for="aggrement"><input type="checkbox" id="aggrement" required>I agree to the term and policy</label> <br>
+            <input type="submit" id="sign-in" value="SIGN UP">
+        </form>
+        <!-- when user is new then it will open the sign up page for the user -->
+        <p>Already have an account? <a href="sign_in.html">SIGN IN</a></p>
+    </div>
+</body>
+</html>

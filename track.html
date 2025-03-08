@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="./css/form-style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track</title>
+</head>
+<style>
+@media only screen and (max-width: 600px) {
+    .navbar {
+        padding: 0px 10px !important;
+    }
+
+    .navbar a {
+        font-size: 13px !important;
+    }
+
+    .image-container img {
+        height: 300px !important;
+    }
+
+    .image-content p {
+        font-size: 22px !important;
+    }
+
+    .image-content h1 {
+        font-size: 30px !important;
+        margin-bottom: 10px;
+    }
+
+    .body-content div img {
+        width: 50px !important;
+        height: 50px !important;
+    }
+
+    .body-content div p {
+        font-size: 12px !important;
+    }
+
+    .feedback-form form input, textarea {
+        width: 70% !important;
+    }
+
+    footer {
+        padding: 20px 50px !important;
+    }
+
+    footer div.contact {
+        width: 100% !important;
+        padding: 10px !important;
+    }
+
+    footer div.report {
+        width: 100% !important;
+        padding: 10px !important;
+    }
+}
+</style>
+<body>
+    <div class="navbar">
+        <a href="home.html" class="image"><img src="images/logo.png" width="50px" height="50px"></a>
+        <div class="navlinks">
+        <a href="home.html" class="navhome">Home</a>
+        <a href="report.html" class="naverep">Report</a>
+        <a href="track.html" class="navtra">Track</a>
+        <a href="sign_in.html">Login</a>
+        <a href="sign_up.html">Register</a>
+        <a href="graph.html">Graph</a>
+        </div>
+        <a href="profile.html" class="navprofile"><img src="images/profile-pic.jpg" "></a>
+        <a href="profile.html" class="navprofile" >Sadaf Nawaby</a>
+    </div>
+
+<div class="trackbody">
+    <h1>
+        <img class="bonus" src="images/bonus.png" width="80px" height="80px">
+    </h1>
+    <h2 class="tracktext"> 
+        Your report was successfully submitted.
+        <br>
+        You recieved 50 bonus points.
+    </h2>
+</div>
+<div class="progress-container">
+    <div class="step">
+        <div class="circle">
+            <img src="./images/icon1.png" alt="Received">
+        </div>
+        <div class="label">Received</div>
+    </div>
+    <div class="line"></div>
+    <div class="step">
+        <div class="circle">
+            <img src="./images/icon2.png" alt="In Process">
+        </div>
+        <div class="label">In Process</div>
+    </div>
+    <div class="line"></div>
+    <div class="step">
+        <div class="circle">
+            <img src="./images/icon3.png" alt="Processed">
+        </div>
+        <div class="label">Processed</div>
+    </div>
+</div>
+<br>
+<form>
+<input type="button" value="Track your report">
+</form>
+<div class="simloc">
+    <img src="./images/map.png" alt="Map" width="40%">
+</div>
+<h3 class="simloctext">
+    234 more similar reports in your area.
+</h3>
+<footer>
+    <div class="contact">
+        <h2>CONTACT US</h2>
+        <p>Siemensstr 6. 12459, Berlin <br>0043 1234 56 78 90 <br>contact@community.voice</p>
+    </div>
+
+    <div class="report">
+      <a href="./report.html">REPORT</a>
+    </div>
+    
+</body>
+</html>
