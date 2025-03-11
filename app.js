@@ -17,6 +17,22 @@ app.get('/home', (request, response) => {
     response.sendFile(__dirname+'/home.html');
   })
 
+app.get('/sign_in', (request, response) => {
+    response.sendFile(__dirname+'/sign_in.html');
+  })
+
+  app.get('/sign_up', (request, response) => {
+    response.sendFile(__dirname+'/sign_up.html');
+  })
+
+  app.get('/register', (request, response) => {
+    response.sendFile(__dirname+'/register.html');
+  })
+
+  app.get('/graph', (request, response) => {
+    response.sendFile(__dirname+'/graph.html');
+  })
+
 app.get('/report',(request, response) => {
   response.sendFile(__dirname+'/report.html');
 })
@@ -26,13 +42,13 @@ app.get('/track', (request, response) =>{
 })
 
 app.get('/track/:id', (request, response) => {
-  const homeId = request.params.id;
-
-  response.send(`This is a dynamic route ${homeId}`)
+  const trackId = request.params.id;
+  // response.send(`An update was posted for: ${trackId}`)
+  response.sendFile(__dirname + '/report5.html');
 } )
 
 app.post('/feedback' ,(request, response) => {
-  console.log(request.body.email)
+  //console.log(request.body.email)
   
   response.send(`Thank you ${request.body.email}. Your feedback is important for us.`);
 })
