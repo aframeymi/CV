@@ -1,30 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <!-- these are the meta tags of them page and stylesheets that i use to apply the same style
-         to this page -->
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="/logo.png">
-    <link rel="stylesheet" href="/style.css">
-    <title>Community Voice</title>
-</head>
-
+<%- include('includes/head') %>
 
 <body>
-    <div class="navbar">
-        <a href="home.html" class="image"><img src="/logo.png" width="50px" height="50px"></a>
-        <div class="navlinks">
-        <a href="/" class="navhome">Home</a>
-        <a href="/report" class="naverep">Report</a>
-        <a href="/track" class="navtra">Track</a>
-        <a href="/sign_in">Login</a>
-        <a href="/sign_up">Register</a>
-        <a href="/graph">Graph</a>
-        </div>
-        <a href="/profile" class="navprofile"><img src="/profile-pic.jpg" "></a>
-        <a href="/profile" class="navprofile" >Sadaf Nawaby</a>
-    </div>
+   
+<%- include('includes/navbar') %>
     <main class="main">
         <div class="image-container">
             <img src="/main-img.jpg">
@@ -69,16 +49,7 @@
         style="border:0; margin: -5px;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
     </main>
 
+<%- include('includes/footer') %>
 
-<footer>
-        <div class="contact">
-            <h2>CONTACT US</h2>
-            <p>Siemensstr 6. 12459, Berlin <br>0043 1234 56 78 90 <br>contact@community.voice</p>
-        </div>
-
-        <div class="report">
-          <a href="/report.html">REPORT</a>
-        </div>
-</footer>
 </body>
 </html>

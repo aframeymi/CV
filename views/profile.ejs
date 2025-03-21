@@ -1,23 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<head>
-    <!-- these are the meta tags of them page and stylesheets that i use to apply the same style
-         to this page -->
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="images/logo.png">
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/form-style.css">
+<%- include('includes/head') %>
 
-    <title>Community Voice</title>
-</head>
 
 <body>
     <div class="navbar">
-        <a href="home.html" class="image"><img src="/logo.png" width="50px" height="50px"></a>
+        <a href="/" class="image"><img src="/logo.png" width="50px" height="50px"></a>
         <div class="navlinks">
-        <a href="/home" class="navhome">Home</a>
+        <a href="/" class="navhome">Home</a>
         <a href="/report" class="naverep">Report</a>
         <a href="/track" class="navtra">Track</a>
         <a href="/sign_in">Login</a>
@@ -30,7 +21,7 @@
 
     <div class="personal-info">
         <div class="profile">
-            <img src="images/profile-pic.jpg" width="80px" height="80px" style="border-radius: 50%;">
+            <img src="profile-pic.jpg" width="80px" height="80px" style="border-radius: 50%;">
             <h4>Sadaf Nawaby</h4>
             <h5>Premium User</h5>
         </div>
@@ -49,26 +40,26 @@
 
     <div class="profile-content">
         <div class="recorded-reports">
-            <img src="images/recorded-reports.png">
+            <img src="recorded-reports.png">
             <p>Recorded Reports</p>
             <p class="number">1524</p>
         </div>
 
         <div class="in-processing-reports">
-            <img src="images/in-processing-reports.png">
+            <img src="in-processing-reports.png">
             <p>In Processing Reports</p>
             <p class="number">15</p>
         </div>
 
         <div class="profile-body-bonus">
             <div class="processed">
-                <img src="images/processed-reports.png">
+                <img src="processed-reports.png">
                 <p>Processed Reports</p>
                 <p class="number">152</p>
             </div>
         </div>
         <div class="bonusimg">
-            <img src="images/bonus.png">
+            <img src="bonus.png">
             <p>Your Bonus</p>
             <p class="number">152</p>
         </div>
@@ -80,15 +71,8 @@
         style="border:0; margin: -5px;" allowfullscreen="" loading="lazy"
         referrerpolicy="no-referrer-when-downgrade"></iframe>
 
-        <footer>
-            <div class="contact">
-                <h2>CONTACT US</h2>
-                <p>Siemensstr 6. 12459, Berlin <br>0043 1234 56 78 90 <br>contact@community.voice</p>
-            </div>
-    
-            <div class="report">
-              <a href="./report.html">REPORT</a>
-            </div>
+     <%- include('includes/footer') %>
+
 </body>
 
 </html>

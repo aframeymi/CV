@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 import data from './data.json' with {type:"json"}
+import { title } from 'process';
 
 console.log(data)
 
@@ -16,44 +17,61 @@ app.use(express.json())
 app.use(express.urlencoded({extended: true }))
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
-const port = 3000;
+const port = 4000;
 
 app.get('/', (request, response) => {
-    response.render("home");
+    response.render("index", {
+      title: "Community Voice"
+    });
   })
 
 app.get('/sign_in', (request, response) => {
-    response.sendFile(__dirname+'/sign_in.html');
+    response.render("sign_in", {
+      title:"Login"
+    });
   })
 
   app.get('/sign_up', (request, response) => {
-    response.sendFile(__dirname+'/sign_up.html');
+    response.render("sign_up", {
+      title: "Register"
+    });
   })
 
-  app.get('/register', (request, response) => {
-    response.sendFile(__dirname+'/register.html');
-  })
+  // app.get('/register', (request, response) => {
+  //   response.render("register");
+  // })
 
   app.get('/graph', (request, response) => {
-    response.sendFile(__dirname+'/graph.html');
+    response.render("graph", {
+      title: "Graph"
+    });
   })
 
 app.get('/report',(request, response) => {
-  response.sendFile(__dirname+'/report.html');
+  response.render("report", {
+    title: "Report"
+  });
 })
 
 app.get('/track', (request, response) =>{
-  response.sendFile(__dirname + '/track.html');
+  response.render("track", {
+    title: "Track"
+  });
 })
 
-app.get('/track/:id', (request, response) => {
-  const trackId = request.params.id;
-  // response.send(`An update was posted for: ${trackId}`)
-  response.sendFile(__dirname + '/report5.html');
-} )
+app.get('/profile', (request,response) => {
+  response.render("profile", {
+    title: "Profile"
+  })
+})
+
+// app.get('/track/:id', (request, response) => {
+//   const trackId = request.params.id;
+//   response.send(`An update was posted for: ${trackId}`)
+//   response.sendFile(__dirname + '/report5.html');
+// } )
 
 app.post('/feedback' ,(request, response) => {
-  //console.log(request.body.email)
   
   response.send(`Thank you ${request.body.email}. Your feedback is important for us.`);
 })

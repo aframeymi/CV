@@ -1,22 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <!-- these are the meta tags of them page and stylesheets that i use to apply the same style
-         for both sign in and sign up page -->
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="/logo.png">
-    <link rel="stylesheet" href="/style.css">
-    <link rel="stylesheet" href="/form-style.css">
-    <title>Community Voice/Sign IN</title>
-</head>
+<%- include('includes/head') %>
+
 
 
 <body>
     <div class="navbar">
-        <a href="home.html" class="image"><img src="/logo.png" width="50px" height="50px"></a>
+        <a href="/" class="image"><img src="/logo.png" width="50px" height="50px"></a>
         <div class="navlinks">
-        <a href="/home" class="navhome">Home</a>
+        <a href="/" class="navhome">Home</a>
         <a href="/report" class="naverep">Report</a>
         <a href="/track" class="navtra">Track</a>
         <a href="/sign_in">Login</a>
@@ -26,6 +18,7 @@
         <a href="/profile" class="navprofile"><img src="/profile-pic.jpg" "></a>
         <a href="/profile" class="navprofile" >Sadaf Nawaby</a>
     </div>
+    <main class="main">
     <!-- this is the whole content of the page -->
     <div id="content">
         <h1>WELCOME</h1>
@@ -42,5 +35,17 @@
         <!-- when user is new then it will open the sign up page for the user -->
         <p>New in here? <a href="sign_up.html">SIGN UP</a></p>
     </div>
+</main>
+    <!-- <%- include('includes/footer') %> -->
+    <footer>
+        <div class="contact">
+            <h2>CONTACT US</h2>
+            <p>Siemensstr 6. 12459, Berlin <br>0043 1234 56 78 90 <br>contact@community.voice</p>
+        </div>
+    
+        <div class="report">
+          <a href="/report.html">REPORT</a>
+        </div>
+    </footer>
 </body>
 </html>

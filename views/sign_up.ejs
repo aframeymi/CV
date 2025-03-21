@@ -1,23 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <!-- these are the meta tags of them page and stylesheets that i use to apply the same style
-         for both sign in and sign up page -->
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="/logo.png">
-    <link rel="stylesheet" href="/style.css">
-    <link rel="stylesheet" href="/form-style.css">
-    <title>Community Voice/Sign UP</title>
-</head>
-
-
+<%- include('includes/head') %>
 
 <body>
     <div class="navbar">
-        <a href="home.html" class="image"><img src="/logo.png" width="50px" height="50px"></a>
+        <a href="/" class="image"><img src="/logo.png" width="50px" height="50px"></a>
         <div class="navlinks">
-        <a href="/home" class="navhome">Home</a>
+        <a href="/" class="navhome">Home</a>
         <a href="/report" class="naverep">Report</a>
         <a href="/track" class="navtra">Track</a>
         <a href="/sign_in">Login</a>
@@ -53,5 +42,7 @@
         <!-- when user is new then it will open the sign up page for the user -->
         <p>Already have an account? <a href="sign_in.html">SIGN IN</a></p>
     </div>
+    <%- include('includes/footer') %>
+
 </body>
 </html>
