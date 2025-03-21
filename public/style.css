@@ -6,6 +6,11 @@
     font-family: Arial, sans-serif;
 }
 
+.main {
+    display: flex;
+    flex-direction: column;
+}
+
 .navbar {
     
     display: flex;
@@ -74,13 +79,18 @@
 }
 
 .image-container {
+    
     position: relative;
     text-align: center;
     color: white;
+    
+    
 }
 
 .image-container img {
     filter: brightness(80%);
+    width: 100%;
+    aspect-ratio: 8/3;
 }
 
 .image-content {
