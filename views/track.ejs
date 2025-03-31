@@ -3,19 +3,8 @@
 <%- include('includes/head') %>
 
 <body>
-    <div class="navbar">
-        <a href="/" class="image"><img src="/logo.png" width="50px" height="50px"></a>
-        <div class="navlinks">
-        <a href="/" class="navhome">Home</a>
-        <a href="/report" class="naverep">Report</a>
-        <a href="/track" class="navtra">Track</a>
-        <a href="/sign_in">Login</a>
-        <a href="/sign_up">Register</a>
-        <a href="/graph">Graph</a>
-        </div>
-        <a href="/profile" class="navprofile"><img src="/profile-pic.jpg" "></a>
-        <a href="/profile" class="navprofile" >Sadaf Nawaby</a>
-    </div>
+    <%- include('includes/navbar') %>
+
 
 <div class="trackbody">
     <h1>
@@ -50,19 +39,24 @@
     </div>
 </div>
 <br>
-<!-- <form>
-<input type="button" value="Track your latest report">
-</form> -->
-<div>
-<a href="track/report5">You have and update on your latest report</a>
-</div>
+<!-- <div class="reports">
+    <div>
+        This is the first report
+    </div>
+    <div>
+        This is the first report
+    </div>
+    <div>
+        This is the first report
+    </div>
+</div> -->
 <div class="simloc">
     <img src="/map.png" alt="Map" width="40%">
 </div>
 <h3 class="simloctext">
     234 more similar reports in your area.
 </h3>
-<%- include('includes/footer') %>
+<!-- <%- include('includes/footer') %> -->
     
 </body>
 </html>

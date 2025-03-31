@@ -5,47 +5,22 @@
 
 
 <body>
-    <div class="navbar">
-        <a href="/" class="image"><img src="/logo.png" width="50px" height="50px"></a>
-        <div class="navlinks">
-        <a href="/" class="navhome">Home</a>
-        <a href="/report" class="naverep">Report</a>
-        <a href="/track" class="navtra">Track</a>
-        <a href="/sign_in">Login</a>
-        <a href="/sign_up">Register</a>
-        <a href="/graph">Graph</a>
-        </div>
-        <a href="/profile" class="navprofile"><img src="/profile-pic.jpg" "></a>
-        <a href="/profile" class="navprofile" >Sadaf Nawaby</a>
-    </div>
+    <%- include('includes/navbar') %>
+
     <main class="main">
-    <!-- this is the whole content of the page -->
     <div id="content">
         <h1>WELCOME</h1>
         <img src="/profile-pic.jpg" alt="profile-pic">
-        <!-- as far as we don't have any database yet, so when user submit the email and password 
-             it will go to the index or the main page for now -->
+        
         <form action="index.html" target="_self">
-            <!-- these are requied because we need to check them wheater they are the same with the
-                 database data or not when we connect a database to it -->
+           
             <input type="email" placeholder="Email" required> <br>
             <input type="password" placeholder="Password" required> <br>
             <input type="submit" id="sign-in" value="SIGN IN">
         </form>
-        <!-- when user is new then it will open the sign up page for the user -->
         <p>New in here? <a href="sign_up.html">SIGN UP</a></p>
     </div>
 </main>
-    <!-- <%- include('includes/footer') %> -->
-    <footer>
-        <div class="contact">
-            <h2>CONTACT US</h2>
-            <p>Siemensstr 6. 12459, Berlin <br>0043 1234 56 78 90 <br>contact@community.voice</p>
-        </div>
-    
-        <div class="report">
-          <a href="/report.html">REPORT</a>
-        </div>
-    </footer>
+    <%- include('includes/footer') %>
 </body>
 </html>

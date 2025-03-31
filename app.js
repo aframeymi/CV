@@ -1,11 +1,12 @@
-import express, { response } from 'express';
-import { request } from 'http';
+import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 import data from './data.json' with {type:"json"}
-import { title } from 'process';
+import { databaseconnect } from './db.js';
+databaseconnect()
+import { Report } from './model/reports.js';
 
 console.log(data)
 
@@ -37,15 +38,23 @@ app.get('/sign_in', (request, response) => {
     });
   })
 
-  // app.get('/register', (request, response) => {
-  //   response.render("register");
-  // })
-
   app.get('/graph', (request, response) => {
     response.render("graph", {
       title: "Graph"
     });
   })
+
+app.post('/submit-report', async (request, response) => {
+  const report = new Report({
+    name:request.body.name,
+    slug:request.body.slug,
+    detail:request.body.detail
+  })
+
+  await report.save()
+
+  response.send('report submited')
+});
 
 app.get('/report',(request, response) => {
   response.render("report", {

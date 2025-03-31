@@ -20,8 +20,10 @@
   },
   "homepage": "https://github.com/aframeymi/CV#readme",
   "dependencies": {
+    "dotenv": "^16.4.7",
     "ejs": "^3.1.10",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "mongoose": "^8.13.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"

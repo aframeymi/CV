@@ -5,19 +5,8 @@
 
 
 <body>
-    <div class="navbar">
-        <a href="/" class="image"><img src="/logo.png" width="50px" height="50px"></a>
-        <div class="navlinks">
-        <a href="/" class="navhome">Home</a>
-        <a href="/report" class="naverep">Report</a>
-        <a href="/track" class="navtra">Track</a>
-        <a href="/sign_in">Login</a>
-        <a href="/sign_up">Register</a>
-        <a href="/graph">Graph</a>
-        </div>
-        <a href="/profile" class="navprofile"><img src="/profile-pic.jpg" ></a>
-        <a href="/profile" class="navprofile" >Sadaf Nawaby</a>
-    </div>
+    <%- include('includes/navbar') %>
+
 
     <div class="image-container">
         <img src="/reportimg.jpg" width="100%" height="500px">
@@ -25,17 +14,19 @@
     </div>
     <div class="report-form">
         <h1>Record a Report</h1>
-        <form>
-            <input type="text" placeholder="Sadaf" required>
-            <input type="text" placeholder="Select Report Category" required>
-            <input type="text" placeholder="Report Address" required>
-            <select>
+        <form method="post" action="/submit-report">
+            <input type="text" name="name" placeholder="Name" required>
+            <input type="text" name="slug" placeholder="slug" required>
+
+            <input type="text" placeholder="Select Report Category" disabled>
+            <input type="text" placeholder="Report Address" disabled>
+            <select disabled>
                 <option>Select Report Sub-category</option>
             </select>
-            <textarea placeholder="Write details in here...."></textarea>
+            <textarea placeholder="Write details in here..." name="detail" required></textarea>
             <div class="file-upload">
 
-                <input type="file" id="fileInput">
+                <input type="file" id="fileInput" disabled>
             </div>
             <button type="submit">SUBMIT</button>
         </form>
