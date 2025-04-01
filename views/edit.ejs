@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('includes/head') %>
+
+</head>
+<body>
+    <%- include('includes/navbar') %>
+
+    <main>
+        <h2>
+            Edit your report
+        </h2>
+        <form action="/track/<%= report.slug %>/edit" method="POST">
+            <input type="text" value="<%= report.name %>" name="name" placeholder="name" /><br />
+            <input type="text" value="<%= report.slug %>" name="slug" placeholder="slug" /><br />
+            <input type="text" value="<%= report.detail %>" name="details" placeholder="details" /><br />
+            <button>Save</button>
+          </form>
+    </main>
+</body>
+</html>

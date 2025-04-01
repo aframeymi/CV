@@ -39,17 +39,31 @@
     </div>
 </div>
 <br>
-<!-- <div class="reports">
-    <div>
-        This is the first report
-    </div>
-    <div>
-        This is the first report
-    </div>
-    <div>
-        This is the first report
-    </div>
-</div> -->
+<div class="report-section">
+    <ul>
+    <% reports.forEach(report => { %>
+        <li class="report-card">
+            <div>
+            <div>
+            <img class="report-img" src="/seo-report.png">
+            </div>
+            Name: <%= report.name %>
+            <br>
+            Slug: <%= report.slug %>
+            <br>
+            Detail: <%= report.detail %>
+            <br>
+            <form action="/track/<%= report.slug %>/edit" method="GET" style="display:inline;">
+                <button class="edit" type="submit">Edit</button>
+              </form>
+              <form action="/track/<%= report.slug %>/delete" method="POST" style="display:inline;">
+                <button class="delete" type="submit">Delete</button>
+              </form>
+            </div>
+        </li>
+    <% }); %>
+    </ul>
+</div>
 <div class="simloc">
     <img src="/map.png" alt="Map" width="40%">
 </div>

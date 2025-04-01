@@ -497,6 +497,58 @@ form label {
     border: none;
 }
 
+
+
+.report-card {
+    width: 190px;
+    height: 200px;
+    border-radius: 30px;
+    background: #e0e0e0;
+    box-shadow: 15px 15px 30px #bebebe,
+             -15px -15px 30px #ffffff;
+    margin: auto;
+    padding-top: 30px;
+    font-size: small;
+    margin-right: 10px;
+    display: inline-block;
+}
+
+.report-card:hover {
+    transform: scale(1.1);
+}
+
+
+.report-section {
+    margin: 20px;
+}
+
+li {
+    list-style: none;
+
+}
+
+.report-img {
+    height: 80px;
+    width: 80px;
+}
+
+
+.edit , .delete {
+    padding: 5px;
+    margin-top: 5px;
+    background-color: #A0D0DF;
+    border-radius: 5%;
+    border: transparent;
+    
+}
+
+.edit:hover ,
+.delete:hover {
+    cursor: pointer;
+    
+}
+
+
 /* this media query uses for aliging the form in the center of the page in mobile device */
 @media only screen and (max-width: 800px) {
     .navbar {

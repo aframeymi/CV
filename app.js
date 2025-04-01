@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { response } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
@@ -7,6 +7,8 @@ import data from './data.json' with {type:"json"}
 import { databaseconnect } from './db.js';
 databaseconnect()
 import { Report } from './model/reports.js';
+import { request } from 'http';
+import { title } from 'process';
 
 console.log(data)
 
@@ -53,7 +55,7 @@ app.post('/submit-report', async (request, response) => {
 
   await report.save()
 
-  response.send('report submited')
+  response.redirect('/track')
 });
 
 app.get('/report',(request, response) => {
@@ -62,11 +64,65 @@ app.get('/report',(request, response) => {
   });
 })
 
-app.get('/track', (request, response) =>{
+app.get('/track', async (request, response) =>{ 
+
+  const reports = await Report.find()
+
   response.render("track", {
-    title: "Track"
+    title: "Track",
+    reports: reports
   });
 })
+
+
+app.get('/track/:slug/edit', async (request,response) => {
+  try {
+    const slug = request.params.slug
+    const report = await Report.findOne({ slug:slug}).exec()
+    if (!report) throw new Error('report not found')
+
+    response.render('edit',{title:"edit", report:report})
+  } catch (error) {
+    console.error(error)
+    response.status(404).send('Could not fint the page')
+  }
+})
+
+
+app.post('/track/:slug/edit', async (request, response) => {
+  try {
+    const slug = request.params.slug;
+    const updatedData = {
+      name : request.body.name,
+      slug : request.body.slug,
+      detail : request.body.detail,
+    };
+
+    const report = await Report.findOneAndUpdate({slug: slug}, updatedData, {new:true}).exec()
+    if (!report) throw new Error('Report Not Found')
+
+    response.redirect('/track')
+  } catch (error) {
+    console.error(error);
+    response.status(404).send('Something went wrong please try again')
+  }
+})
+
+
+app.post('/track/:slug/delete', async (request,response) => {
+  try {
+    const slug = request.params.slug
+    const report = await Report.findOneAndDelete({slug:slug}).exec()
+    if (!report) throw new Error ('Report Not found')
+
+    response.redirect('/track')
+  } catch (error) {
+    console.error(error)
+    response.status(500).send('There was a problem please try again')
+  }
+})
+
+
 
 app.get('/profile', (request,response) => {
   response.render("profile", {
@@ -74,11 +130,6 @@ app.get('/profile', (request,response) => {
   })
 })
 
-// app.get('/track/:id', (request, response) => {
-//   const trackId = request.params.id;
-//   response.send(`An update was posted for: ${trackId}`)
-//   response.sendFile(__dirname + '/report5.html');
-// } )
 
 app.post('/feedback' ,(request, response) => {
   
