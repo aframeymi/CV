@@ -511,6 +511,7 @@ form label {
     font-size: small;
     margin-right: 10px;
     display: inline-block;
+    margin-top: 5px;
 }
 
 .report-card:hover {
