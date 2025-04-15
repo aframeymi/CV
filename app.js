@@ -95,7 +95,7 @@ app.post('/track/:slug/edit', async (request, response) => {
     const updatedData = {
       name : request.body.name,
       slug : request.body.slug,
-      detail : request.body.detail,
+      detail : request.body.details,
     };
 
     const report = await Report.findOneAndUpdate({slug: slug}, updatedData, {new:true}).exec()

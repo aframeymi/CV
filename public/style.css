@@ -20,7 +20,6 @@
     box-shadow: 0 0.5px 2px lightgrey;
     font-size: 15px;
     flex-wrap: wrap;
-    
 }
 
 .navbar a {
@@ -59,6 +58,10 @@
     order: 2;
 }
 
+.navbar a:hover {
+    font-weight: bold;
+
+}
 
 
 .image-content p {
@@ -210,11 +213,19 @@ footer {
     color: white;
     width: 100%;
     height: 200px;
-    margin-top:auto ;
+    margin-top:auto;
     bottom: 0;
-
-
 }
+
+.footer-container {
+    display: flex;
+    flex-wrap: wrap; /* Ensures responsiveness on smaller screens */
+    justify-content: space-between; /* Space out the sections horizontally */
+    align-items: center; /* Align items vertically in the center */
+    max-width: 1200px; /* Limits the width of the footer content */
+    margin: 0 auto; /* Center the footer content horizontally */
+  }
+  
 
 footer div.contact {
     float: left;
@@ -319,6 +330,9 @@ footer div.report a {
 
 body {
     background-color: #f0f0f0;
+    display: flex;
+    flex-direction: column;
+
 }
  form {
     margin-bottom: 20px;
@@ -446,6 +460,10 @@ html {
     height: auto;
 }
 
+html, body {
+    height: 100%;
+}
+
 header img {
     width: 7rem;
     height: 7rem;
@@ -550,10 +568,9 @@ li {
 }
 
 
-/* this media query uses for aliging the form in the center of the page in mobile device */
 @media only screen and (max-width: 800px) {
     .navbar {
-        padding: 0px 10px !important;
+        padding: 0px 10px;
     }
 
     .navlinks {
@@ -562,19 +579,19 @@ li {
     }
 
     .navbar a {
-        font-size: 13px !important;
+        font-size: 13px ;
     }
 
     .image-container img {
-        height: 300px !important;
+        height: 300px ;
     }
 
     .image-content p {
-        font-size: 22px !important;
+        font-size: 22px ;
     }
 
     .image-content h1 {
-        font-size: 30px !important;
+        font-size: 30px ;
         margin-bottom: 10px;
     }
 
@@ -584,23 +601,22 @@ li {
     }
 
     .body-content div img {
-        width: 50px !important;
-        height: 50px !important;
+        width: 50px ;
+        height: 50px ;
     }
 
     .body-content div p {
-        font-size: 12px !important;
+        font-size: 12px ;
     }
 
     .feedback-form form input, textarea {
-        width: 70% !important;
+        width: 70% ;
     }
 
-    footer {
+    /* footer {
         padding: 20px 50px !important;
         bottom: 0;
         position: absolute;
-        margin: auto;
     }
 
     footer div.contact {
@@ -611,16 +627,15 @@ li {
     footer div.report {
         width: 100% !important;
         padding: 10px !important;
-    }
-}
-  /* this media query uses for aliging the form in the center of the page in mobile device */
-  @media only screen and (max-width: 600px) {
-    #content {
-        margin-top: 50%;
-    }
+    } */
+
+    .footer-container {
+        flex-direction: column; /* Stack sections vertically on smaller screens */
+        text-align: center; /* Center-align text for all sections */
+      }
+    
 }
 
-/* this media query uses for aliging the form in the center of the page in tablet or bigger than mobile */
 @media only screen and (max-width: 1000px) {
     #content {
         margin-top: 50%;
@@ -653,50 +668,71 @@ li {
 
 @media only screen and (max-width: 600px) {
     .navbar {
-        padding: 0px 10px !important;
+        padding: 0px 10px;
     }
 
     .navbar a {
-        font-size: 13px !important;
+        font-size: 13px ;
     }
 
     .image-container img {
-        height: 300px !important;
+        height: 300px ;
     }
 
     .image-content p {
-        font-size: 22px !important;
+        font-size: 22px ;
     }
 
     .image-content h1 {
-        font-size: 30px !important;
+        font-size: 30px ;
         margin-bottom: 10px;
     }
 
+    .body-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+
+        }
+
     .body-content div img {
-        width: 50px !important;
-        height: 50px !important;
+        width: 50px ;
+        height: 50px ;
     }
 
     .body-content div p {
-        font-size: 12px !important;
+        font-size: 12px ;
     }
 
     .feedback-form form input, textarea {
-        width: 70% !important;
+        width: 70% ;
+    }
+    #content {
+        margin-top: 50%;
     }
 
-    footer {
-        padding: 20px 50px !important;
-    }
+    .footer-container {
+        flex-direction: column;
+        text-align: center;
+      }
 
-    footer div.contact {
-        width: 100% !important;
-        padding: 10px !important;
-    }
+    .topnav.responsive {position: relative;}
+    .topnav.responsive a.icon {
+        position: absolute;
+        right: 0;
+        top: 0;
+  }
+  .topnav.responsive a {
+    float: none;
+    display: block;
+    text-align: left;
+  }
+  .topnav a:not(:first-child) {display: none;}
+  .topnav a.icon {
+    float: right;
+    display: block;
+  }
 
-    footer div.report {
-        width: 100% !important;
-        padding: 10px !important;
-    }
 }
+
+
