@@ -58,6 +58,49 @@ app.post('/submit-report', async (request, response) => {
   response.redirect('/track')
 });
 
+
+app.post('/register', (req, res) => {
+  res.send(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Under Process</title>
+          <style>
+              body {
+                  font-family: Arial, sans-serif;
+                  text-align: center;
+                  margin-top: 100px;
+              }
+              h1 {
+                  color: #ff0000;
+              }
+              p {
+                  color: #555;
+              }
+              a {
+                  text-decoration: none;
+                  color: #007BFF;
+                  font-weight: bold;
+              }
+              a:hover {
+                  text-decoration: underline;
+              }
+          </style>
+      </head>
+      <body>
+          <h1>Oops!</h1>
+          <p>This is still under process.</p>
+          <a href="/">Go Back to Home</a>
+      </body>
+      </html>
+  `);
+});
+
+
+
+
 app.get('/report',(request, response) => {
   response.render("report", {
     title: "Report"

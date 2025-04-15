@@ -1,14 +1,21 @@
 <div class="navbar">
     <a href="/" class="image"><img src="/logo.png" width="50px" height="50px"></a>
     <div class="navlinks">
-    <a href="/" class="navhome">Home</a>
-    <a href="/report" class="naverep">Report</a>
-    <a href="/track" class="navtra">Track</a>
-    <a href="/sign_in">Login</a>
-    <a href="/sign_up">Register</a>
-    <a href="/graph">Graph</a>
-    </a>
+        <a href="/" class="navhome">Home</a>
+        <a href="/report" class="naverep">Report</a>
+        <a href="/track" class="navtra">Track</a>
+        <a href="/sign_in">Login</a>
+        <a href="/sign_up">Register</a>
+        <a href="/graph">Graph</a>
+        </a>
     </div>
-    <a href="/profile" class="navprofile"><img src="/profile-pic.jpg"></a>
-    <a href="/profile" class="navprofile" >Sadaf Nawaby</a>
+    <div class="dropdown">
+        <a href="javascript:void(0)" class="navprofile"><img src="/profile-pic.jpg" onclick="callMenu()"></a>
+        <a href="javascript:void(0)" id="navprofile" class="navprofile" onclick="callMenu()">Sadaf Nawaby</a>
+        <div id="hiddenLinks" class="dropdown-content">
+            <a href="/profile">Profile</a>
+            <a href="#">Setting</a>
+            <a href="#">Log Out</a>
+        </div>
+    </div>
 </div>

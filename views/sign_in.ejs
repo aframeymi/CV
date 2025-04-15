@@ -12,15 +12,16 @@
         <h1>WELCOME</h1>
         <img src="/profile-pic.jpg" alt="profile-pic">
         
-        <form action="index.html" target="_self">
+        <form action="/register" method="post" target="_self">
            
             <input type="email" placeholder="Email" required> <br>
             <input type="password" placeholder="Password" required> <br>
             <input type="submit" id="sign-in" value="SIGN IN">
         </form>
-        <p>New in here? <a href="sign_up.html">SIGN UP</a></p>
+        <p>New in here? <a href="/sign_up">SIGN UP</a></p>
     </div>
 </main>
-    <%- include('includes/footer') %>
+<script src="/script.js"></script>
+
 </body>
 </html>

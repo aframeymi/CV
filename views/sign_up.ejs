@@ -5,14 +5,12 @@
 <body>
     <%- include('includes/navbar') %>
     <main class="main">
-    <div id="background-photo">
-        <img src="" alt="" width="100%" height="300px">
-    </div>
+
 
     <div id="content">
         <h1>REGISTER</h1>
         
-        <form action="index.html" target="_self">
+        <form action="/register" method="post" target="_self">
             <input type="text" placeholder="Name" required> <br>
             <input type="text" placeholder="Surname" required> <br>
             <input type="number" placeholder="Phone Number" required> <br>
@@ -28,11 +26,10 @@
             <label for="aggrement"><input type="checkbox" id="aggrement" required>I agree to the term and policy</label> <br>
             <input type="submit" id="sign-in" value="SIGN UP">
         </form>
-        <p>Already have an account? <a href="sign_in.html">SIGN IN</a></p>
+        <p>Already have an account? <a href="/sign_in">SIGN IN</a></p>
     </div>
     </main>
-
-    <%- include('includes/footer') %>
+    <script src="/script.js"></script>
 
 </body>
 </html>
