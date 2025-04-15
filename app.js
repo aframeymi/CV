@@ -3,14 +3,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-import data from './data.json' with {type:"json"}
 import { databaseconnect } from './db.js';
 databaseconnect()
 import { Report } from './model/reports.js';
 import { request } from 'http';
 import { title } from 'process';
-
-console.log(data)
 
 const app = express();
 
