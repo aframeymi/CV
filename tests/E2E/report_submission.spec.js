@@ -1,3 +1,5 @@
+// E2E test. We check if users can fill out the form, submit it & then it being displayed in the right place.
+
 import { test, expect } from '@playwright/test';
 
 test.describe('Report Submission Flow', () => {

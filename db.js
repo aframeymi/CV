@@ -1,30 +1,3 @@
-// import { config } from "dotenv";
-// import mongoose from "mongoose";
-
-// config();
-
-// const DB_URI = process.env.URI; // Read the URI from environment variables
-
-// export const databaseconnect = async () => {
-//   try {
-//     if (!DB_URI) {
-//       throw new Error("Database URI is not defined");
-//     }
-//     await mongoose.connect(DB_URI, {}); // Connect using the environment variable
-//     console.log("Database connected");
-//   } catch (error) {
-//     console.error("Error connecting to database:", error);
-//   }
-// };
-
-// export const databasedisconnect = async () => {
-//   try {
-//     await mongoose.connection.close(); // Ensure the connection is closed
-//     console.log("Database disconnected");
-//   } catch (error) {
-//     console.error("Error disconnecting from database:", error);
-//   }
-// };
 import { config } from "dotenv";
 import mongoose from "mongoose";
 

@@ -1,3 +1,5 @@
+//This is a unit test, checking the databaseconnect function in the db.js. We are using a mock data. first we check to see if there is a correct URI, then the database connection & then detecting errors.
+
 import mongoose from "mongoose";
 import { databaseconnect } from "../../db";
 
