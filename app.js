@@ -4,10 +4,11 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 import { databaseconnect } from './db.js';
-databaseconnect()
+databaseconnect(process.env.URI)
 import { Report } from './model/reports.js';
 import { request } from 'http';
 import { title } from 'process';
+
 
 const app = express();
 
@@ -179,3 +180,5 @@ app.post('/feedback' ,(request, response) => {
 app.listen(port, () => {
     console.log(`Started server on port ${port}`);
 })
+
+export default app;
