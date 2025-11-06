@@ -1,0 +1,22 @@
+// This is your Prisma schema file.
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Specifies the database provider (PostgreSQL) and the connection URL (from .env)
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Specifies the client generator (JavaScript)
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Defines the Report model, which maps to the 'reports' table in PostgreSQL
+model Report {
+  id     Int     @id @default(autoincrement()) // Primary key, auto-incrementing integer
+  name   String
+  slug   String  @unique // Added @unique constraint, as slugs should be unique
+  detail String
+  
+}
