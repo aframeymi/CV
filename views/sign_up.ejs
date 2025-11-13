@@ -3,33 +3,43 @@
 <%- include('includes/head') %>
 
 <body>
-    <%- include('includes/navbar') %>
-    <main class="main">
-
+  <%- include('includes/navbar') %>
+  <main class="main">
 
     <div id="content">
-        <h1>REGISTER</h1>
-        
-        <form action="/register" method="post" target="_self">
-            <input type="text" placeholder="Name" required> <br>
-            <input type="text" placeholder="Surname" required> <br>
-            <input type="number" placeholder="Phone Number" required> <br>
-            <input type="email" placeholder="Email" required> <br>
-            <input type="password" placeholder="Password" required> <br>
-            <input type="password" placeholder="Confirm Password" required> <br>
-            <select name="language" id="language" style="color: #A0D0DF;" required>
-                <option value="English" selected>English</option>
-                <option value="German">German</option>
-                <option value="Persian">Persian</option>
-                <option value="French">French</option>
-            </select> <br>
-            <label for="aggrement"><input type="checkbox" id="aggrement" required>I agree to the term and policy</label> <br>
-            <input type="submit" id="sign-in" value="SIGN UP">
-        </form>
-        <p>Already have an account? <a href="/sign_in">SIGN IN</a></p>
-    </div>
-    </main>
-    <script src="/script.js"></script>
+      <h1>REGISTER</h1>
+      
+      
+      <form action="/api/register" method="post" target="_self">
+        <input type="text" name="name" placeholder="Name" required> <br>
+        <input type="text" name="surname" placeholder="Surname" required> <br>
+        <input type="number" name="phone" placeholder="Phone Number" required> <br>
+        <input type="email" name="email" placeholder="Email" required> <br>
+        <input type="password" name="password" placeholder="Password" required> <br>
 
+        <input type="password" name="confirm_password" placeholder="Confirm Password" required> <br>
+        
+        <select name="language" id="language" style="color: #A0D0DF;" required>
+          <option value="English" selected>English</option>
+          <option value="German">German</option>
+          <option value="Persian">Persian</option>
+          <option value="French">French</option>
+        </select> <br>
+
+        <label for="aggrement">
+          <input type="checkbox" id="aggrement" name="aggrement" required>
+          I agree to the term and policy
+        </label> <br>
+
+        <input type="submit" id="sign-in" value="SIGN UP">
+      </form>
+      <% if (typeof error !== 'undefined') { %>
+        <p style="color:red;"><%= error %></p>
+      <% } %>
+
+      <p>Already have an account? <a href="/sign_in">SIGN IN</a></p>
+    </div>
+  </main>
+  <script src="/script.js"></script>
 </body>
 </html>

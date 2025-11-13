@@ -1,7 +1,13 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import prisma from './prismaClient.js'; 
+import prisma from '../prismaClient.js';
+import cookieParser from 'cookie-parser';
+import { createRequire } from 'module';
+import router from './routes/index.js';
+import verifyToken from './middleware/index.js';
+
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,9 +17,13 @@ const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
-const port = 4000;
+app.set('views', path.join(__dirname, '..', 'views'));
+const port = process.env.PORT || 4001;
+
+app.use(router);
 
 
 app.get('/', (request, response) => {
@@ -46,10 +56,8 @@ app.get('/report', (request, response) => {
   });
 });
 
-app.get('/profile', (request, response) => {
-  response.render("profile", {
-    title: "Profile"
-  });
+app.get('/profile', verifyToken, (req, res) => {
+  res.render('profile', { title: 'Profile' });
 });
 
 
@@ -183,3 +191,5 @@ app.listen(port, () => {
 });
 
 export default app;
+
+

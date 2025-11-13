@@ -1,0 +1,19 @@
+[debug] [2025-11-06T15:47:57.868Z] ----------------------------------------------------------------------
+[debug] [2025-11-06T15:47:57.870Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\helia\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js init
+[debug] [2025-11-06T15:47:57.870Z] CLI Version:   14.24.0
+[debug] [2025-11-06T15:47:57.870Z] Platform:      win32
+[debug] [2025-11-06T15:47:57.870Z] Node Version:  v22.14.0
+[debug] [2025-11-06T15:47:57.870Z] Time:          Thu Nov 06 2025 16:47:57 GMT+0100 (Central European Standard Time)
+[debug] [2025-11-06T15:47:57.870Z] ----------------------------------------------------------------------
+[debug] 
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  C:\Users\helia\Desktop\CV 2\CV
+

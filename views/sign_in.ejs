@@ -7,17 +7,17 @@
 <body>
     <%- include('includes/navbar') %>
 
-    <main class="main">
+<main class="main">
     <div id="content">
         <h1>WELCOME</h1>
         <img src="/pp.jpg" alt="profile-pic">
         
-        <form action="/register" method="post" target="_self">
-           
-            <input type="email" placeholder="Email" required> <br>
-            <input type="password" placeholder="Password" required> <br>
-            <input type="submit" id="sign-in" value="SIGN IN">
+        <form method="POST" action="/api/login">
+            <input type="email" name="email" placeholder="Email" required />
+            <input type="password" name="password" placeholder="Password" required />
+            <input type="submit" value="Sign in" />
         </form>
+
         <p>New in here? <a href="/sign_up">SIGN UP</a></p>
     </div>
 </main>
