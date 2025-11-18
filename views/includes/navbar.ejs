@@ -1,24 +1,43 @@
 <div class="navbar">
-    <a href="/" class="image"><img src="/logo.png" width="50px" height="50px"></a>
-    <div class="navlinks">
-        <a href="/" class="navhome">Home</a>
-        <a href="/report" class="naverep">Report</a>
-        <a href="/track" class="navtra">Track</a>
-        <a href="/sign_in">Login</a>
-        <a href="/sign_up">Register</a>
-        <a href="/graph">Graph</a>
-        </a>
-    </div>
-    <div class="dropdown">
-        <a href="javascript:void(0)" class="navprofile"><img src="/pp.jpg" onclick="callMenu()"></a>
-       <a href="javascript:void(0)" id="navprofile" class="navprofile" onclick="callMenu()">
-         <%= (typeof user !== 'undefined' && user && (user.email || user.name)) ? (user.email || user.name) : 'User' %>
-        </a>
+  <a href="/" class="image"><img src="/logo.png" width="50px" height="50px" alt="logo"></a>
 
-        <div id="hiddenLinks" class="dropdown-content">
-            <a href="/profile">Profile</a>
-            <a href="#">Setting</a>
-            <a href="#">Log Out</a>
-        </div>
+  <div class="navlinks">
+    <a href="/" class="navhome">Home</a>
+    <a href="/report" class="naverep">Report</a>
+    <a href="/track" class="navtra">Track</a>
+    <a href="/graph">Graph</a>
+
+    <% if (typeof user !== 'undefined' && user) { %>
+    <% } else { %>
+      <a href="/sign_in">Login</a>
+      <a href="/sign_up">Register</a>
+    <% } %>
+  </div>
+
+  <div class="dropdown">
+    <a href="javascript:void(0)" class="navprofile">
+      <img src="/pp.jpg" alt="profile-pic" onclick="callMenu()">
+    </a>
+
+    <a href="javascript:void(0)" id="navprofile" class="navprofile" onclick="callMenu()">
+      <%= (typeof user !== 'undefined' && user)
+          ? (user.name || user.email || 'User')
+          : 'User' %>
+    </a>
+
+    <div id="hiddenLinks" class="dropdown-content">
+      <% if (typeof user !== 'undefined' && user) { %>
+        <a href="/profile">Profile</a>
+        <a href="/settings">Setting</a>
+        <form method="POST" action="/api/logout" style="display:block; margin:0; padding:0;">
+          <button type="submit" class="linklike" style="background:none; border:none; padding:12px 16px; width:100%; text-align:left; cursor:pointer;">
+            Logout
+          </button>
+        </form>
+      <% } else { %>
+        <a href="/sign_in">Sign in</a>
+        <a href="/sign_up">Sign up</a>
+      <% } %>
     </div>
+  </div>
 </div>
