@@ -6,29 +6,48 @@ import {
   sendEmailVerification,
   sendPasswordResetEmail,
 } from '../config/firebase.js';
+import { updateProfile } from 'firebase/auth';
+
 
 class FirebaseAuthController {
   registerUser(req, res) {
-    const { email, password } = req.body;
+    const { email, password, name, surname } = req.body;
     if (!email || !password) {
       return res.status(422).json({
         email: 'Email is required',
         password: 'Password is required',
       });
     }
-    createUserWithEmailAndPassword(auth, email, password)
-      .then(() => {
+     createUserWithEmailAndPassword(auth, email, password)
+      .then(async () => {
+        try {
+          const displayName = [name, surname].filter(Boolean).join(' ');
+          if (auth.currentUser && name) {
+            await updateProfile(auth.currentUser, { displayName: name });
+          }
+        } catch (e) {
+          console.error('Failed to set displayName:', e);
+          
+        }
+
+        
         sendEmailVerification(auth.currentUser)
           .then(() => {
-            res.status(201).json({ message: 'Verification email sent! User created successfully!' });
+            res.status(201).json({
+              message: 'Verification email sent! User created successfully!',
+            });
           })
           .catch((error) => {
             console.error(error);
-            res.status(500).json({ error: 'Error sending email verification' });
+            res
+              .status(500)
+              .json({ error: 'Error sending email verification' });
           });
       })
       .catch((error) => {
-        const errorMessage = error.message || 'An error occurred while registering user';
+        console.error(error);
+        const errorMessage =
+          error.message || 'An error occurred while registering user';
         res.status(500).json({ error: errorMessage });
       });
   }
@@ -46,7 +65,8 @@ class FirebaseAuthController {
         const idToken = userCredential._tokenResponse?.idToken;
         if (idToken) {
           res.cookie('access_token', idToken, { httpOnly: true });
-          res.status(200).json({ message: 'User logged in successfully', userCredential });
+          return res.redirect('/');
+          //res.status(200).json({ message: 'User logged in successfully', userCredential });
         } else {
           res.status(500).json({ error: 'Internal Server Error' });
         }

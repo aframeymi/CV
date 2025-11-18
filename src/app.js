@@ -5,7 +5,9 @@ import prisma from '../prismaClient.js';
 import cookieParser from 'cookie-parser';
 import { createRequire } from 'module';
 import router from './routes/index.js';
-import verifyToken from './middleware/index.js';
+import middleware from './middleware/index.js';
+
+
 
 
 
@@ -18,9 +20,11 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(middleware.attachUserIfPresent);
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '..', 'views'));
+
 const port = process.env.PORT || 4001;
 
 app.use(router);
@@ -56,7 +60,7 @@ app.get('/report', (request, response) => {
   });
 });
 
-app.get('/profile', verifyToken, (req, res) => {
+app.get('/profile', middleware.verifyToken, (req, res) => {
   res.render('profile', { title: 'Profile' });
 });
 

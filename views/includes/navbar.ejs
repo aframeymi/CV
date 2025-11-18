@@ -11,7 +11,10 @@
     </div>
     <div class="dropdown">
         <a href="javascript:void(0)" class="navprofile"><img src="/pp.jpg" onclick="callMenu()"></a>
-        <a href="javascript:void(0)" id="navprofile" class="navprofile" onclick="callMenu()">User</a>
+       <a href="javascript:void(0)" id="navprofile" class="navprofile" onclick="callMenu()">
+         <%= (typeof user !== 'undefined' && user && (user.email || user.name)) ? (user.email || user.name) : 'User' %>
+        </a>
+
         <div id="hiddenLinks" class="dropdown-content">
             <a href="/profile">Profile</a>
             <a href="#">Setting</a>
