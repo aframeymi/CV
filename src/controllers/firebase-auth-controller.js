@@ -1,54 +1,49 @@
 import {
-  auth, 
+  auth,
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
   sendEmailVerification,
-  sendPasswordResetEmail,
 } from '../config/firebase.js';
 import { updateProfile } from 'firebase/auth';
 
-
 class FirebaseAuthController {
-  registerUser(req, res) {
-    const { email, password, name, surname } = req.body;
+  registerUser(req, res, next) {
+    const { email, password, name, surname } = req.body; 
     if (!email || !password) {
       return res.status(422).json({
         email: 'Email is required',
         password: 'Password is required',
       });
     }
-     createUserWithEmailAndPassword(auth, email, password)
-      .then(async () => {
+
+    createUserWithEmailAndPassword(auth, email, password)
+      .then(async (userCredential) => {
         try {
           const displayName = [name, surname].filter(Boolean).join(' ');
-          if (auth.currentUser && name) {
-            await updateProfile(auth.currentUser, { displayName: name });
+          if (auth.currentUser && displayName) {
+            await updateProfile(auth.currentUser, { displayName });
           }
         } catch (e) {
           console.error('Failed to set displayName:', e);
-          
         }
 
-        
-        sendEmailVerification(auth.currentUser)
-          .then(() => {
-            res.status(201).json({
-              message: 'Verification email sent! User created successfully!',
-            });
-          })
-          .catch((error) => {
-            console.error(error);
-            res
-              .status(500)
-              .json({ error: 'Error sending email verification' });
-          });
+        // non-blocking email verification
+        sendEmailVerification(auth.currentUser).catch((e) =>
+          console.error('Verification email error:', e)
+        );
+
+        // expose info for DB profile creation
+        req.firebaseUser = {
+          uid: userCredential.user.uid,
+          email: userCredential.user.email,
+        };
+
+        return next(); // IMPORTANT: continue to DB insert middleware
       })
       .catch((error) => {
         console.error(error);
         const errorMessage =
           error.message || 'An error occurred while registering user';
-        res.status(500).json({ error: errorMessage });
+        return res.status(500).json({ error: errorMessage });
       });
   }
 
@@ -66,7 +61,6 @@ class FirebaseAuthController {
         if (idToken) {
           res.cookie('access_token', idToken, { httpOnly: true });
           return res.redirect('/');
-          //res.status(200).json({ message: 'User logged in successfully', userCredential });
         } else {
           res.status(500).json({ error: 'Internal Server Error' });
         }

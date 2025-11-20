@@ -47,11 +47,11 @@
             <div>
             <img class="report-img" src="/seo-report.png">
             </div>
-            Name: <%= report.name %>
+            Name: <%= report.title %>
             <br>
-            Slug: <%= report.slug %>
+            <!-- Slug: <%= report.slug %> -->
             <br>
-            Detail: <%= report.detail %>
+            Detail: <%= report.description %>
             <br>
             <form action="/track/<%= report.slug %>/edit" method="GET" style="display:inline;">
                 <button class="edit" type="submit">Edit</button>

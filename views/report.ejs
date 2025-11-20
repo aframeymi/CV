@@ -15,11 +15,11 @@
     <div class="report-form">
         <h1>Record a Report</h1>
         <form method="post" action="/submit-report" autocomplete="off">
-            <input type="text" name="name" placeholder="Name" required >
-            <input type="text" name="slug" placeholder="Title" required>
-            <textarea placeholder="Write details in here..." name="detail" required></textarea>
+            <input type="text" name="title" placeholder="Name" required >
+            <!-- <input type="text" name="slug" placeholder="Title" required> -->
+            <textarea placeholder="Write details in here..." name="description" required></textarea>
             <div class="file-upload">
-                <input type="file" id="fileInput" disabled>
+                <input type="file" id="fileInput" >
             </div>
             <a href="/track"><button type="submit">SUBMIT</button> </a>
         </form>

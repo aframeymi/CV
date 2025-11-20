@@ -6,7 +6,8 @@ import cookieParser from 'cookie-parser';
 import { createRequire } from 'module';
 import router from './routes/index.js';
 import middleware from './middleware/index.js';
-
+import reportsRouter from './routes/reports.js';
+import uploadRouter from './routes/upload.js';
 
 
 
@@ -24,6 +25,8 @@ app.use(middleware.attachUserIfPresent);
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '..', 'views'));
+app.use(reportsRouter);
+app.use(uploadRouter);
 
 const port = process.env.PORT || 4001;
 

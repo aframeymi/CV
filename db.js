@@ -1,7 +1,7 @@
 import { config } from "dotenv";
 import mongoose from "mongoose";
 
-config(); // Load environment variables from .env
+config(); 
 
 export const databaseconnect = async (uri = process.env.URI) => {
   try {
