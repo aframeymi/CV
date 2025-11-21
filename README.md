@@ -48,3 +48,5 @@ https://github.com/aframeymi/CV
 
 SOME PARTS ARE NOT WORKING:
 Login-Sign up-Setting- Log out
+
+![alt text](<CV Tables.png>)

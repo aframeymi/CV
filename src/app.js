@@ -1,98 +1,65 @@
+// src/app.js
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import prisma from '../prismaClient.js';
 import cookieParser from 'cookie-parser';
-import { createRequire } from 'module';
 import router from './routes/index.js';
 import middleware from './middleware/index.js';
 import reportsRouter from './routes/reports.js';
 import uploadRouter from './routes/upload.js';
 import multer from 'multer';
 
-
-
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-
 const app = express();
 
+// Core middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(middleware.attachUserIfPresent);
+app.use(middleware.attachUserIfPresent); // expose req.user if cookie present
 app.use(express.static('public'));
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '..', 'views'));
+
+// Routers
 app.use(reportsRouter);
 app.use(uploadRouter);
-
-const port = process.env.PORT || 5000;
-
 app.use(router);
 
-app.get('/', (request, response) => {
-  response.render("index", {
-    title: "Community Voice"
-  });
+// Multer setup for multipart/form-data (report image uploads)
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, path.join(process.cwd(), 'public', 'uploads')),
+  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname),
+});
+const upload = multer({ storage });
+
+// Home
+app.get('/', (req, res) => {
+  res.render('index', { title: 'Community Voice' });
 });
 
-app.get('/sign_in', (request, response) => {
-  response.render("sign_in", {
-    title: "Login"
-  });
+// Auth-related pages
+app.get('/sign_in', (req, res) => {
+  res.render('sign_in', { title: 'Login' });
 });
 
-app.get('/sign_up', (request, response) => {
-  response.render("sign_up", {
-    title: "Register"
-  });
+app.get('/sign_up', (req, res) => {
+  res.render('sign_up', { title: 'Register' });
 });
 
-app.get('/graph', (request, response) => {
-  response.render("graph", {
-    title: "Graph"
-  });
+app.get('/graph', (req, res) => {
+  res.render('graph', { title: 'Graph' });
 });
 
 app.get('/profile', middleware.verifyToken, (req, res) => {
   res.render('profile', { title: 'Profile' });
 });
 
-
-app.post('/register', (req, res) => {
-  res.send(`
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Under Process</title>
-          <style>
-              body { font-family: Arial, sans-serif; text-align: center; margin-top: 100px; }
-              h1 { color: #ff0000; }
-              p { color: #555; }
-              a { text-decoration: none; color: #007BFF; font-weight: bold; }
-              a:hover { text-decoration: underline; }
-          </style>
-      </head>
-      <body>
-          <h1>Oops!</h1>
-          <p>This is still under process.</p>
-          <a href="/">Go Back to Home</a>
-      </body>
-      </html>
-  `);
-});
-
-app.post('/feedback', (request, response) => {
-  response.send(`Thank you ${request.body.email}. Your feedback is important for us.`);
-});
-
-
-
+// Report form: load Cities with Neighborhoods
 app.get('/report', async (req, res) => {
   try {
     const cities = await prisma.city.findMany({
@@ -106,131 +73,178 @@ app.get('/report', async (req, res) => {
   }
 });
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.join(process.cwd(), 'public', 'uploads')),
-  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname),
-});
-const upload = multer({ storage });
+// Submit report: require auth, parse multipart, create atomically (Report + StatusChange [+ Attachment])
+app.post(
+  '/submit-report',
+  middleware.verifyToken,
+  upload.single('image'), // parses multipart: puts fields into req.body and file into req.file
+  async (req, res) => {
+    try {
+      const { title, description, neighborhoodId } = req.body;
+      const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
-app.post('/submit-report', middleware.verifyToken, async (request, response) => {
+      if (!title || !description || !neighborhoodId) {
+        return res.status(422).send('title, description, and neighborhoodId are required.');
+      }
+
+      // Verify author
+      const email = req.user?.email;
+      const user = await prisma.user.findUnique({ where: { email } });
+      if (!user) {
+        return res.status(403).send('User profile not found.');
+      }
+
+      // Verify neighborhood
+      const nbh = await prisma.neighborhood.findUnique({ where: { id: neighborhoodId } });
+      if (!nbh) {
+        return res.status(422).send('Invalid neighborhoodId.');
+      }
+
+      // Transaction: create report + initial statusChange (OPEN -> OPEN) + optional attachment
+      await prisma.$transaction(async (tx) => {
+        const created = await tx.report.create({
+          data: {
+            title,
+            description,
+            imageUrl,
+            status: 'OPEN',
+            authorId: user.id,
+            neighborhoodId,
+          },
+        });
+
+        await tx.statusChange.create({
+          data: {
+            reportId: created.id,
+            from: 'OPEN',
+            to: 'OPEN',
+            changedBy: user.email || null,
+          },
+        });
+
+        if (imageUrl) {
+          await tx.attachment.create({
+            data: {
+              reportId: created.id,
+              url: imageUrl,
+              mimeType: req.file?.mimetype || 'image/jpeg',
+              sizeBytes: req.file?.size || null,
+            },
+          });
+        }
+      });
+
+      return res.redirect('/track');
+    } catch (error) {
+      console.error('Error submitting report:', error);
+      return res.status(500).send('There was a problem submitting your report.');
+    }
+  }
+);
+
+// Track page: show reports with author and neighborhood + city
+app.get('/track', async (req, res) => {
   try {
-    console.log('submit-report body:', request.body);
-    const { title, description, neighborhoodId } = request.body;
-    const imageUrl = request.body.imageUrl || null;
-
-    if (!title || !description || !neighborhoodId) {
-      return response.status(422).send('title, description, and neighborhoodId are required.');
-    }
-
-    const email = request.user?.email;
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      return response.status(403).send('User profile not found.');
-    }
-
-    const nbh = await prisma.neighborhood.findUnique({ where: { id: neighborhoodId } });
-    if (!nbh) {
-      return response.status(422).send('Invalid neighborhoodId.');
-    }
-
-    await prisma.report.create({
-      data: {
-        title,
-        description,
-        imageUrl,
-        status: 'OPEN',
-        authorId: user.id,
-        neighborhoodId,
+    const reports = await prisma.report.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        author: { select: { firstName: true, lastName: true, email: true } },
+        neighborhood: { select: { name: true, city: { select: { name: true } } } },
       },
     });
 
-    return response.redirect('/track');
+    res.render('track', { title: 'Track', reports });
   } catch (error) {
-    console.error('Error submitting report:', error);
-    return response.status(500).send('There was a problem submitting your report.');
+    console.error('Error fetching reports:', error);
+    res.status(500).send('Could not fetch reports.');
   }
 });
 
-app.get('/track', async (request, response) => {
+// Raw SQL: counts of reports per status per city
+app.get('/admin/report-stats', async (req, res) => {
   try {
-    const reports = await prisma.report.findMany();
-
-    response.render("track", {
-      title: "Track",
-      reports: reports
-    });
-  } catch (error) {
-    console.error("Error fetching reports:", error);
-    response.status(500).send('Could not fetch reports.');
+    const rows = await prisma.$queryRawUnsafe(`
+      SELECT
+        c.name AS city,
+        r.status AS status,
+        COUNT(*)::int AS count
+      FROM reports r
+      JOIN neighborhoods n ON n.id = r.neighborhood_id
+      JOIN cities c ON c.id = n.city_id
+      GROUP BY c.name, r.status
+      ORDER BY c.name, r.status;
+    `);
+    res.json({ rows });
+  } catch (e) {
+    console.error('report-stats error:', e);
+    res.status(500).send('Could not fetch report statistics');
   }
 });
 
-app.get('/track/:slug/edit', async (request, response) => {
+// ORM analytics: counts by status, top reporters, busiest neighborhoods
+app.get('/admin/analytics', async (req, res) => {
   try {
-    const slug = request.params.slug;
-    
-    const report = await prisma.report.findUnique({
-      where: { slug: slug }
-    });
-
-    if (!report) {
-      return response.status(404).send('Could not find that report.');
-    }
-
-    response.render('edit', { title: "Edit Report", report: report });
-  } catch (error) {
-    console.error("Error finding report to edit:", error);
-    response.status(404).send('Could not find the page.');
-  }
-});
-
-app.post('/track/:slug/edit', async (request, response) => {
-  try {
-    const slug = request.params.slug;
-    const { name, slug: newSlug, detail } = request.body; 
-
-    const updatedReport = await prisma.report.update({
-      where: { slug: slug },
-      data: {
-        name: name,
-        slug: newSlug,
-        detail: detail,
-      }
+    // Counts of reports by status
+    const countsByStatus = await prisma.report.groupBy({
+      by: ['status'],
+      _count: { _all: true },
+      orderBy: { status: 'asc' },
     });
 
-    response.redirect('/track');
-  } catch (error) {
-    console.error("Error updating report:", error);
-    if (error.code === 'P2025') {
-      return response.status(404).send('Report Not Found');
-    }
-    response.status(500).send('Something went wrong, please try again.');
-  }
-});
-
-app.post('/track/:slug/delete', async (request, response) => {
-  try {
-    const slug = request.params.slug;
-    
-    await prisma.report.delete({
-      where: { slug: slug }
+    // Top reporters by number of reports
+    const topReporters = await prisma.user.findMany({
+      select: {
+        firstName: true,
+        lastName: true,
+        email: true,
+        _count: { select: { reports: true } },
+      },
+      orderBy: { reports: { _count: 'desc' } },
+      take: 5,
     });
 
-    response.redirect('/track');
-  } catch (error) {
-    console.error("Error deleting report:", error);
-    if (error.code === 'P2025') {
-      return response.status(404).send('Report Not Found');
-    }
-    response.status(500).send('There was a problem, please try again.');
+    // Busiest neighborhoods: order by count of the grouped field (neighborhoodId)
+    const busiestNeighborhoods = await prisma.report.groupBy({
+      by: ['neighborhoodId'],
+      _count: { neighborhoodId: true },                 // count grouped field
+      orderBy: { _count: { neighborhoodId: 'desc' } },  // order by that count
+      take: 5,
+    });
+
+    // Hydrate neighborhood and city names
+    const busiestWithNames = await Promise.all(
+      busiestNeighborhoods.map(async (r) => {
+        const n = await prisma.neighborhood.findUnique({
+          where: { id: r.neighborhoodId },
+          include: { city: true },
+        });
+        return {
+          neighborhood: n?.name ?? '(unknown)',
+          city: n?.city?.name ?? '(unknown)',
+          count: r._count.neighborhoodId, // note the field used in _count
+        };
+      })
+    );
+
+    res.json({
+      countsByStatus,
+      topReporters,
+      busiestNeighborhoods: busiestWithNames,
+    });
+  } catch (e) {
+    console.error('analytics error:', e);
+    res.status(500).send('Could not fetch analytics');
   }
 });
 
+/*
+  NOTE: Old slug/name/detail CRUD routes removed because they don’t match the current Prisma schema.
+  If you still need edit/delete flows, re-implement them with the correct fields (title, description, imageUrl, neighborhoodId).
+*/
 
+const port = process.env.PORT || 5000;
 app.listen(port, () => {
   console.log(`Server started on http://localhost:${port}`);
 });
 
 export default app;
-
-

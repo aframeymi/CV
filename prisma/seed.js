@@ -1,4 +1,3 @@
-// prisma/seed.js
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
@@ -22,42 +21,36 @@ async function main() {
   ]);
 
   // City and Neighborhoods
-  const berlin = await prisma.city.create({
-    data: { name: 'Berlin', code: 'BE' },
-  });
-
-  const [neukolln, mitte, kreuzberg] = await Promise.all([
-    prisma.neighborhood.create({ data: { name: 'Neukölln', cityId: berlin.id } }),
+  const berlin = await prisma.city.create({ data: { name: 'Berlin', code: 'BE' } });
+  const [mitte, kreuzberg, neukolln] = await Promise.all([
     prisma.neighborhood.create({ data: { name: 'Mitte', cityId: berlin.id } }),
     prisma.neighborhood.create({ data: { name: 'Kreuzberg', cityId: berlin.id } }),
+    prisma.neighborhood.create({ data: { name: 'Neukölln', cityId: berlin.id } }),
   ]);
 
-  // Categories
-  const [lighting, roads, sanitation, graffiti, playground] = await Promise.all([
+  // Optional categories (use later if needed)
+  const [lighting, roads, sanitation, graffiti] = await Promise.all([
     prisma.category.create({ data: { name: 'Lighting' } }),
     prisma.category.create({ data: { name: 'Roads' } }),
     prisma.category.create({ data: { name: 'Sanitation' } }),
     prisma.category.create({ data: { name: 'Graffiti' } }),
-    prisma.category.create({ data: { name: 'Playground' } }),
   ]);
 
-  // User passwords
-  const [alicePassword, bobPassword, caraPassword] = await Promise.all([
+  // Users
+  const [alicePw, bobPw, caraPw] = await Promise.all([
     bcrypt.hash('AlicePass123!', 10),
     bcrypt.hash('BobPass123!', 10),
     bcrypt.hash('CaraPass123!', 10),
   ]);
 
-  // Users (note: firstName, lastName, roleId are required in schema)
   const alice = await prisma.user.create({
     data: {
       firstName: 'Alice',
       lastName: 'Anderson',
       phone: '+4915111111111',
       email: 'alice@example.com',
-      passwordHash: alicePassword,
+      passwordHash: alicePw,
       roleId: adminRole.id,
-      firebaseUid: null,
     },
   });
 
@@ -67,9 +60,8 @@ async function main() {
       lastName: 'Brown',
       phone: '+4915222222222',
       email: 'bob@example.com',
-      passwordHash: bobPassword,
+      passwordHash: bobPw,
       roleId: citizenRole.id,
-      firebaseUid: null,
     },
   });
 
@@ -79,35 +71,28 @@ async function main() {
       lastName: 'Clark',
       phone: '+4915333333333',
       email: 'cara@example.com',
-      passwordHash: caraPassword,
+      passwordHash: caraPw,
       roleId: citizenRole.id,
-      firebaseUid: null,
     },
   });
 
-  // Reports with required neighborhoodId and category connections
+  // Reports with varied statuses and neighborhoods
   const r1 = await prisma.report.create({
     data: {
       title: 'Broken streetlight',
-      description: 'The streetlight on Main St near the bus stop is flickering and often off at night.',
+      description: 'Streetlight in Mitte is flickering.',
       imageUrl: '/uploads/streetlight-1.jpg',
       status: 'OPEN',
       authorId: alice.id,
       neighborhoodId: mitte.id,
       categories: { connect: [{ id: lighting.id }] },
-      attachments: {
-        create: [
-          { url: '/uploads/streetlight-closeup.jpg', mimeType: 'image/jpeg', sizeBytes: 245123 },
-        ],
-      },
     },
-    include: { categories: true },
   });
 
   const r2 = await prisma.report.create({
     data: {
-      title: 'Pothole on 3rd Ave',
-      description: 'Large pothole causing cyclists to swerve. Needs urgent repair.',
+      title: 'Pothole on main road',
+      description: 'Deep pothole near the market.',
       imageUrl: null,
       status: 'IN_PROGRESS',
       authorId: alice.id,
@@ -119,7 +104,7 @@ async function main() {
   const r3 = await prisma.report.create({
     data: {
       title: 'Overflowing trash bin',
-      description: 'Trash bin in the park hasn’t been emptied in days.',
+      description: 'Trash bins need emptying.',
       imageUrl: '/uploads/trash-park.jpg',
       status: 'OPEN',
       authorId: bob.id,
@@ -130,8 +115,8 @@ async function main() {
 
   const r4 = await prisma.report.create({
     data: {
-      title: 'Graffiti on public building',
-      description: 'Graffiti on the side wall of the library.',
+      title: 'Graffiti on library wall',
+      description: 'Large graffiti on the side wall.',
       imageUrl: null,
       status: 'RESOLVED',
       authorId: bob.id,
@@ -149,16 +134,34 @@ async function main() {
   const r5 = await prisma.report.create({
     data: {
       title: 'Damaged playground swing',
-      description: 'One swing chain is broken; unsafe for kids.',
+      description: 'One swing chain is broken.',
       imageUrl: '/uploads/playground-swing.jpg',
       status: 'OPEN',
       authorId: cara.id,
       neighborhoodId: kreuzberg.id,
-      categories: { connect: [{ id: playground.id }] },
+      categories: { connect: [{ id: lighting.id }] }, // just an example
     },
   });
 
-  console.log('Seed completed: roles, city, neighborhoods, categories, users, reports created.');
+  // Optional: example attachments and status changes for r1
+  await prisma.attachment.create({
+    data: {
+      reportId: r1.id,
+      url: '/uploads/streetlight-close.jpg',
+      mimeType: 'image/jpeg',
+      sizeBytes: 240000,
+    },
+  });
+  await prisma.statusChange.create({
+    data: {
+      reportId: r1.id,
+      from: 'OPEN',
+      to: 'OPEN',
+      changedBy: alice.email,
+    },
+  });
+
+  console.log('Seed completed: roles, city, neighborhoods, categories, users, reports.');
 }
 
 main()
