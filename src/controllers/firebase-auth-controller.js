@@ -1,6 +1,8 @@
 import {
   auth,
   createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
   sendEmailVerification,
 } from '../config/firebase.js';
 import { updateProfile } from 'firebase/auth';

@@ -8,6 +8,7 @@ import router from './routes/index.js';
 import middleware from './middleware/index.js';
 import reportsRouter from './routes/reports.js';
 import uploadRouter from './routes/upload.js';
+import multer from 'multer';
 
 
 
@@ -28,10 +29,9 @@ app.set('views', path.join(__dirname, '..', 'views'));
 app.use(reportsRouter);
 app.use(uploadRouter);
 
-const port = process.env.PORT || 4001;
+const port = process.env.PORT || 5000;
 
 app.use(router);
-
 
 app.get('/', (request, response) => {
   response.render("index", {
@@ -54,12 +54,6 @@ app.get('/sign_up', (request, response) => {
 app.get('/graph', (request, response) => {
   response.render("graph", {
     title: "Graph"
-  });
-});
-
-app.get('/report', (request, response) => {
-  response.render("report", {
-    title: "Report"
   });
 });
 
@@ -98,22 +92,62 @@ app.post('/feedback', (request, response) => {
 });
 
 
-app.post('/submit-report', async (request, response) => {
+
+app.get('/report', async (req, res) => {
   try {
-    const { name, slug, detail } = request.body;
-    
-    const report = await prisma.report.create({
+    const cities = await prisma.city.findMany({
+      include: { neighborhoods: true },
+      orderBy: { name: 'asc' },
+    });
+    res.render('report', { title: 'Report', cities });
+  } catch (e) {
+    console.error('Failed to load cities:', e);
+    res.status(500).send('Could not load the report form.');
+  }
+});
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, path.join(process.cwd(), 'public', 'uploads')),
+  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname),
+});
+const upload = multer({ storage });
+
+app.post('/submit-report', middleware.verifyToken, async (request, response) => {
+  try {
+    console.log('submit-report body:', request.body);
+    const { title, description, neighborhoodId } = request.body;
+    const imageUrl = request.body.imageUrl || null;
+
+    if (!title || !description || !neighborhoodId) {
+      return response.status(422).send('title, description, and neighborhoodId are required.');
+    }
+
+    const email = request.user?.email;
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return response.status(403).send('User profile not found.');
+    }
+
+    const nbh = await prisma.neighborhood.findUnique({ where: { id: neighborhoodId } });
+    if (!nbh) {
+      return response.status(422).send('Invalid neighborhoodId.');
+    }
+
+    await prisma.report.create({
       data: {
-        name: name,
-        slug: slug,
-        detail: detail
-      }
+        title,
+        description,
+        imageUrl,
+        status: 'OPEN',
+        authorId: user.id,
+        neighborhoodId,
+      },
     });
 
-    response.redirect('/track');
+    return response.redirect('/track');
   } catch (error) {
-    console.error("Error submitting report:", error);
-    response.status(500).send('There was a problem submitting your report.');
+    console.error('Error submitting report:', error);
+    return response.status(500).send('There was a problem submitting your report.');
   }
 });
 
