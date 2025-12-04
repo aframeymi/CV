@@ -47,16 +47,16 @@
             <div>
             <img class="report-img" src="/seo-report.png">
             </div>
-            Name: <%= report.title %>
+            Title: <%= report.title %>
             <br>
             <!-- Slug: <%= report.slug %> -->
             <br>
-            Detail: <%= report.description %>
+            Description: <%= report.description %>
             <br>
-            <form action="/track/<%= report.slug %>/edit" method="GET" style="display:inline;">
+            <form action="/track/<%= report.id %>/edit" method="GET" style="display:inline;">
                 <button class="edit" type="submit">Edit</button>
               </form>
-              <form action="/track/<%= report.slug %>/delete" method="POST" style="display:inline;">
+              <form action="/track/<%= report.id %>/delete" method="POST" style="display:inline;">
                 <button class="delete" type="submit">Delete</button>
               </form>
             </div>

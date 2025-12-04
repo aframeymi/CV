@@ -14,4 +14,5 @@ uploadRouter.post('/api/upload', upload.single('image'), (req, res) => {
   res.json({ imageUrl });
 });
 
+export { upload }; 
 export default uploadRouter;

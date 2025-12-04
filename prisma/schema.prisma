@@ -1,56 +1,40 @@
+generator client {
+  provider = "prisma-client-js"
+}
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
-/*
-Notes:
-- Using cuid() for id fields to match your DBML style.
-- Using snake_case in DB with mapped names where needed for consistency with your DBML.
-- onDelete: Cascade for child tables so removing a parent cleans up dependents.
-*/
-
 model Role {
   id          String  @id @default(cuid())
-  title       String  @unique   // 'Admin' | 'Moderator' | 'Citizen'
+  title       String  @unique
   description String?
-
-  // One role -> many users
   users       User[]
 }
 
 model User {
-  id            String   @id @default(cuid())
-  createdAt     DateTime @default(now()) @map("created_at")
-  firstName     String   @map("first_name")
-  lastName      String   @map("last_name")
-  phone         String
-  email         String   @unique
-  passwordHash  String   @map("password_hash")
-  firebaseUid   String?  @map("firebase_uid")
-
-  // Single role per user (N:1)
-  roleId        String   @map("role_id")
-  role          Role     @relation(fields: [roleId], references: [id])
-
-  // One user -> many reports
-  reports       Report[]
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now()) @map("created_at")
+  firstName    String   @map("first_name")
+  lastName     String   @map("last_name")
+  phone        String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  firebaseUid  String?  @map("firebase_uid")
+  roleId       String   @map("role_id")
+  reports      Report[]
+  role         Role     @relation(fields: [roleId], references: [id])
 
   @@index([roleId])
   @@map("users")
 }
 
 model City {
-  id    String  @id @default(cuid())
-  name  String  @unique
-  code  String?
-
-  // One city -> many neighborhoods
+  id            String         @id @default(cuid())
+  name          String         @unique
+  code          String?
   neighborhoods Neighborhood[]
 
   @@map("cities")
@@ -60,55 +44,37 @@ model Neighborhood {
   id        String   @id @default(cuid())
   name      String
   cityId    String   @map("city_id")
-  city      City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now()) @map("created_at")
-
-  // One neighborhood -> many reports (as per your latest choice)
+  city      City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
   reports   Report[]
 
+  @@unique([cityId, name])
   @@index([cityId])
-  @@unique([cityId, name]) // Unique neighborhood name per city
   @@map("neighborhoods")
 }
 
 model Category {
-  id    String  @id @default(cuid())
-  name  String  @unique
-
-  // M:N with reports (implicit join table)
-  reports Report[]
+  id      String   @id @default(cuid())
+  name    String   @unique
+  reports Report[] @relation("CategoryToReport")
 
   @@map("categories")
 }
 
-enum Status {
-  OPEN
-  IN_PROGRESS
-  RESOLVED
-}
-
 model Report {
-  id             String       @id @default(cuid())
-  createdAt      DateTime     @default(now()) @map("created_at")
+  id             String         @id @default(cuid())
+  createdAt      DateTime       @default(now()) @map("created_at")
   title          String
   description    String
-  imageUrl       String?      @map("image_url")
-  status         Status       @default(OPEN)
-
-  // author (N:1)
-  authorId       String       @map("author_id")
-  author         User         @relation(fields: [authorId], references: [id])
-
-  // neighborhood (N:1)
-  neighborhoodId String       @map("neighborhood_id")
-  neighborhood   Neighborhood @relation(fields: [neighborhoodId], references: [id])
-
-  // M:N categories (implicit relation)
-  categories     Category[]
-
-  // 1:N attachments, status changes
+  imageUrl       String?        @map("image_url")
+  status         Status         @default(OPEN)
+  authorId       String         @map("author_id")
+  neighborhoodId String         @map("neighborhood_id")
   attachments    Attachment[]
-  statusChanges  StatusChange[]  // removed @map here (not allowed on relation fields)
+  author         User           @relation(fields: [authorId], references: [id])
+  neighborhood   Neighborhood   @relation(fields: [neighborhoodId], references: [id])
+  statusChanges  StatusChange[]
+  categories     Category[]     @relation("CategoryToReport")
 
   @@index([authorId])
   @@index([neighborhoodId])
@@ -119,25 +85,31 @@ model Report {
 model Attachment {
   id        String   @id @default(cuid())
   reportId  String   @map("report_id")
-  report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
   url       String
   mimeType  String?  @map("mime_type")
   sizeBytes Int?     @map("size_bytes")
   createdAt DateTime @default(now()) @map("created_at")
+  report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
   @@index([reportId])
   @@map("attachments")
 }
 
 model StatusChange {
-  id         String   @id @default(cuid())
-  reportId   String   @map("report_id")
-  report     Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  from       Status   @map("from_status")
-  to         Status   @map("to_status")
-  changedAt  DateTime @default(now()) @map("changed_at")
-  changedBy  String?  @map("changed_by")
+  id        String   @id @default(cuid())
+  reportId  String   @map("report_id")
+  from      Status   @map("from_status")
+  to        Status   @map("to_status")
+  changedAt DateTime @default(now()) @map("changed_at")
+  changedBy String?  @map("changed_by")
+  report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
   @@index([reportId, changedAt])
   @@map("status_change")
+}
+
+enum Status {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
 }

@@ -8,7 +8,8 @@ import router from './routes/index.js';
 import middleware from './middleware/index.js';
 import reportsRouter from './routes/reports.js';
 import uploadRouter from './routes/upload.js';
-import multer from 'multer';
+import { upload } from './routes/upload.js';
+// import multer from 'multer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,12 +31,12 @@ app.use(reportsRouter);
 app.use(uploadRouter);
 app.use(router);
 
-// Multer setup for multipart/form-data (report image uploads)
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.join(process.cwd(), 'public', 'uploads')),
-  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname),
-});
-const upload = multer({ storage });
+// // Multer setup for multipart/form-data (report image uploads)
+// const storage = multer.diskStorage({
+//   destination: (req, file, cb) => cb(null, path.join(process.cwd(), 'public', 'uploads')),
+//   filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname),
+// });
+// const upload = multer({ storage });
 
 // Home
 app.get('/', (req, res) => {
@@ -157,6 +158,37 @@ app.get('/track', async (req, res) => {
   } catch (error) {
     console.error('Error fetching reports:', error);
     res.status(500).send('Could not fetch reports.');
+  }
+});
+
+// Load edit form
+app.get('/track/:id/edit', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const report = await prisma.report.findUnique({ where: { id } });
+    if (!report) return res.status(404).send('Report not found');
+
+    res.render('edit', { title: 'Edit Report', report });
+  } catch (err) {
+    console.error('Error loading edit page:', err);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+// Handle form submission for edits
+app.post('/track/:id/edit', async (req, res) => {
+  const { id } = req.params;
+  const { title, description } = req.body;
+  try {
+    await prisma.report.update({
+      where: { id },
+      data: { ...({title: title}), 
+      ...({description:description })},
+    });
+    res.redirect('/track');
+  } catch (err) {
+    console.error('Error updating report:', err);
+    res.status(500).send('Internal Server Error');
   }
 });
 
