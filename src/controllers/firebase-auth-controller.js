@@ -28,18 +28,16 @@ class FirebaseAuthController {
           console.error('Failed to set displayName:', e);
         }
 
-        // non-blocking email verification
         sendEmailVerification(auth.currentUser).catch((e) =>
           console.error('Verification email error:', e)
         );
 
-        // expose info for DB profile creation
         req.firebaseUser = {
           uid: userCredential.user.uid,
           email: userCredential.user.email,
         };
 
-        return next(); // IMPORTANT: continue to DB insert middleware
+        return next();
       })
       .catch((error) => {
         console.error(error);

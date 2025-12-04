@@ -1,4 +1,3 @@
-// src/app.js
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -9,41 +8,30 @@ import middleware from './middleware/index.js';
 import reportsRouter from './routes/reports.js';
 import uploadRouter from './routes/upload.js';
 import { upload } from './routes/upload.js';
-// import multer from 'multer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Core middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(middleware.attachUserIfPresent); // expose req.user if cookie present
+app.use(middleware.attachUserIfPresent); 
 app.use(express.static('public'));
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '..', 'views'));
 
-// Routers
 app.use(reportsRouter);
 app.use(uploadRouter);
 app.use(router);
 
-// // Multer setup for multipart/form-data (report image uploads)
-// const storage = multer.diskStorage({
-//   destination: (req, file, cb) => cb(null, path.join(process.cwd(), 'public', 'uploads')),
-//   filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname),
-// });
-// const upload = multer({ storage });
 
-// Home
 app.get('/', (req, res) => {
   res.render('index', { title: 'Community Voice' });
 });
 
-// Auth-related pages
 app.get('/sign_in', (req, res) => {
   res.render('sign_in', { title: 'Login' });
 });
@@ -60,7 +48,6 @@ app.get('/profile', middleware.verifyToken, (req, res) => {
   res.render('profile', { title: 'Profile' });
 });
 
-// Report form: load Cities with Neighborhoods
 app.get('/report', async (req, res) => {
   try {
     const cities = await prisma.city.findMany({
@@ -74,11 +61,10 @@ app.get('/report', async (req, res) => {
   }
 });
 
-// Submit report: require auth, parse multipart, create atomically (Report + StatusChange [+ Attachment])
 app.post(
   '/submit-report',
   middleware.verifyToken,
-  upload.single('image'), // parses multipart: puts fields into req.body and file into req.file
+  upload.single('image'), 
   async (req, res) => {
     try {
       const { title, description, neighborhoodId } = req.body;
@@ -88,20 +74,17 @@ app.post(
         return res.status(422).send('title, description, and neighborhoodId are required.');
       }
 
-      // Verify author
       const email = req.user?.email;
       const user = await prisma.user.findUnique({ where: { email } });
       if (!user) {
         return res.status(403).send('User profile not found.');
       }
 
-      // Verify neighborhood
       const nbh = await prisma.neighborhood.findUnique({ where: { id: neighborhoodId } });
       if (!nbh) {
         return res.status(422).send('Invalid neighborhoodId.');
       }
 
-      // Transaction: create report + initial statusChange (OPEN -> OPEN) + optional attachment
       await prisma.$transaction(async (tx) => {
         const created = await tx.report.create({
           data: {
@@ -143,7 +126,6 @@ app.post(
   }
 );
 
-// Track page: show reports with author and neighborhood + city
 app.get('/track', async (req, res) => {
   try {
     const reports = await prisma.report.findMany({
@@ -161,7 +143,6 @@ app.get('/track', async (req, res) => {
   }
 });
 
-// Load edit form
 app.get('/track/:id/edit', async (req, res) => {
   const { id } = req.params;
   try {
@@ -175,7 +156,6 @@ app.get('/track/:id/edit', async (req, res) => {
   }
 });
 
-// Handle form submission for edits
 app.post('/track/:id/edit', async (req, res) => {
   const { id } = req.params;
   const { title, description } = req.body;
@@ -192,7 +172,6 @@ app.post('/track/:id/edit', async (req, res) => {
   }
 });
 
-// Raw SQL: counts of reports per status per city
 app.get('/admin/report-stats', async (req, res) => {
   try {
     const rows = await prisma.$queryRawUnsafe(`
@@ -213,17 +192,14 @@ app.get('/admin/report-stats', async (req, res) => {
   }
 });
 
-// ORM analytics: counts by status, top reporters, busiest neighborhoods
 app.get('/admin/analytics', async (req, res) => {
   try {
-    // Counts of reports by status
     const countsByStatus = await prisma.report.groupBy({
       by: ['status'],
       _count: { _all: true },
       orderBy: { status: 'asc' },
     });
 
-    // Top reporters by number of reports
     const topReporters = await prisma.user.findMany({
       select: {
         firstName: true,
@@ -235,15 +211,13 @@ app.get('/admin/analytics', async (req, res) => {
       take: 5,
     });
 
-    // Busiest neighborhoods: order by count of the grouped field (neighborhoodId)
     const busiestNeighborhoods = await prisma.report.groupBy({
       by: ['neighborhoodId'],
-      _count: { neighborhoodId: true },                 // count grouped field
-      orderBy: { _count: { neighborhoodId: 'desc' } },  // order by that count
+      _count: { neighborhoodId: true },                 
+      orderBy: { _count: { neighborhoodId: 'desc' } },  
       take: 5,
     });
 
-    // Hydrate neighborhood and city names
     const busiestWithNames = await Promise.all(
       busiestNeighborhoods.map(async (r) => {
         const n = await prisma.neighborhood.findUnique({
@@ -253,7 +227,7 @@ app.get('/admin/analytics', async (req, res) => {
         return {
           neighborhood: n?.name ?? '(unknown)',
           city: n?.city?.name ?? '(unknown)',
-          count: r._count.neighborhoodId, // note the field used in _count
+          count: r._count.neighborhoodId, 
         };
       })
     );
@@ -268,11 +242,6 @@ app.get('/admin/analytics', async (req, res) => {
     res.status(500).send('Could not fetch analytics');
   }
 });
-
-/*
-  NOTE: Old slug/name/detail CRUD routes removed because they don’t match the current Prisma schema.
-  If you still need edit/delete flows, re-implement them with the correct fields (title, description, imageUrl, neighborhoodId).
-*/
 
 const port = process.env.PORT || 5000;
 app.listen(port, () => {

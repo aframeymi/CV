@@ -4,7 +4,6 @@ import bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function main() {
-  // Clean up in dependency order
   await prisma.statusChange.deleteMany();
   await prisma.attachment.deleteMany();
   await prisma.report.deleteMany();
@@ -14,13 +13,11 @@ async function main() {
   await prisma.category.deleteMany();
   await prisma.role.deleteMany();
 
-  // Roles
   const [adminRole, citizenRole] = await Promise.all([
     prisma.role.create({ data: { title: 'Admin', description: 'Platform administrator' } }),
     prisma.role.create({ data: { title: 'Citizen', description: 'Regular user' } }),
   ]);
 
-  // City and Neighborhoods
   const berlin = await prisma.city.create({ data: { name: 'Berlin', code: 'BE' } });
   const [mitte, kreuzberg, neukolln] = await Promise.all([
     prisma.neighborhood.create({ data: { name: 'Mitte', cityId: berlin.id } }),
@@ -28,7 +25,6 @@ async function main() {
     prisma.neighborhood.create({ data: { name: 'Neukölln', cityId: berlin.id } }),
   ]);
 
-  // Optional categories (use later if needed)
   const [lighting, roads, sanitation, graffiti] = await Promise.all([
     prisma.category.create({ data: { name: 'Lighting' } }),
     prisma.category.create({ data: { name: 'Roads' } }),
@@ -36,7 +32,6 @@ async function main() {
     prisma.category.create({ data: { name: 'Graffiti' } }),
   ]);
 
-  // Users
   const [alicePw, bobPw, caraPw] = await Promise.all([
     bcrypt.hash('AlicePass123!', 10),
     bcrypt.hash('BobPass123!', 10),
@@ -76,7 +71,6 @@ async function main() {
     },
   });
 
-  // Reports with varied statuses and neighborhoods
   const r1 = await prisma.report.create({
     data: {
       title: 'Broken streetlight',
@@ -139,11 +133,10 @@ async function main() {
       status: 'OPEN',
       authorId: cara.id,
       neighborhoodId: kreuzberg.id,
-      categories: { connect: [{ id: lighting.id }] }, // just an example
+      categories: { connect: [{ id: lighting.id }] },
     },
   });
 
-  // Optional: example attachments and status changes for r1
   await prisma.attachment.create({
     data: {
       reportId: r1.id,

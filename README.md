@@ -2,51 +2,82 @@
 
 About the website:
 This project aims to creat a platform where citizens of Berlin can report city infrastructural problems that they see in their everyday life to the municipality.
-With the current state of the website, the user is able to add,edit & delete reports which is connected directly to the database.
 
 
-Home page:
-where users can see basic information and give feedback.
-
-Profile page:
-lets users edit their Email, Phone number & their prefered language. The user can also see the status and the number of the reports they have made.
-
-Report page:
-Where the user can report a problem using different categories.
-
-Signin/Signup page:
-Where user can create a new account or login in to an already exsiting one.
-
-Track page:
-User can track the status of their report.
-
-Graph page:
-Here user can see graphs and charts related to all the reported problems.
+Users can:
+- Register
+- Log in
+- Submit reports
+- Track reports
+- Edit Reports
+- Delete Reports
+- Upload photos
 
 
+Prerequisites:
+- Node.js (18.0 or later)
+- npm (9.0 or later)
+- Git
+- Prisma CLI
+- Postgres Database (Neon or local)
+- Firebase
 
-This website has been made using Express.
-The style has been done using CSS.
-The database is MongoDB.
-The Code was uploaded on Github.
-The website was deployed using render.com
+Setup guide:
+1. Clone
+```bash
+git clone https://github.com/aframeymi/CV.git
+cd CV
+```
+
+2. Install Dependencies
+```bash
+npm install
+```
+
+3. Environment Variables
+```bash
+   DATABASE_URL="postgresql://<user>:<password>@<your-neon-host>/<database>?sslmode=require"
+
+   FIREBASE_API_KEY=""
+   FIREBASE_AUTH_DOMAIN=""
+   FIREBASE_PROJECT_ID=""
+   FIREBASE_STORAGE_BUCKET=""
+   FIREBASE_MESSAGING_SENDER_ID=""
+   FIREBASE_APP_ID=""
+
+   PORT=5000
+```
+
+4. Initialize prisma
+```bash
+npx prisma migrate deploy
+```
+
+5. Seed
+```bash
+npm run prisma:seed
+```
+
+6. Run
+```bash
+npm run dev
+```
+
+http://localhost:5000
 
 
-A simple Guide on how to get this up & going
-1.install VsCode
-2.Create a Github account
-3.Go to this page:
-https://github.com/aframeymi/CV
-4.Clone the repository
-5.Install MongoDB
-6.For the env file the URI has to be written
-7.Open terminal and find the correct location
-8.Install NPM
-9.Run npm start
-10.The website should be hosted on localhost:4000
+To open prisma studio:
+```bash
+npx prisma studio
+```
+
+The website is deployed on render.com
+https://cv-wluv.onrender.com
 
 
-SOME PARTS ARE NOT WORKING:
-Login-Sign up-Setting- Log out
+
+Database table created on:
+dbdiagram.io
+
 
 ![alt text](<CV Tables.png>)

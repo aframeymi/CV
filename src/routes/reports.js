@@ -5,27 +5,23 @@ import { upload } from './upload.js';
 
 const reportsRouter = Router();
 
-// Create report (must be logged in)
 reportsRouter.post(
   '/api/reports',
   middleware.verifyToken,
-  upload.single('image'), // handles multipart/form-data
+  upload.single('image'), 
   async (req, res) => {
     try {
       const { title, description } = req.body;
       const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
-      // Validate input
       if (!title || !description) {
         return res.status(400).json({ error: 'Title and description are required.' });
       }
 
-      // Find user by email from decoded token
       const email = req.user?.email;
       const user = await prisma.user.findUnique({ where: { email } });
       if (!user) return res.status(403).json({ error: 'User profile not found' });
 
-      // Create the report in the database
       const report = await prisma.report.create({
         data: {
           title,
@@ -44,7 +40,6 @@ reportsRouter.post(
   }
 );
 
-// List all reports (public)
 reportsRouter.get('/api/reports', async (req, res) => {
   try {
     const reports = await prisma.report.findMany({

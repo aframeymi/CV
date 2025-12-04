@@ -1,7 +1,5 @@
-// src/middleware/index.js
 import { admin } from '../config/firebase.js';
 
-// Strict version: blocks when not authenticated
 const verifyToken = async (req, res, next) => {
   try {
     const idToken = req.cookies?.access_token;
@@ -18,7 +16,6 @@ const verifyToken = async (req, res, next) => {
   }
 };
 
-// Soft version: tries to decode; never blocks
 const attachUserIfPresent = async (req, res, next) => {
   try {
     const idToken = req.cookies?.access_token;
@@ -35,7 +32,6 @@ const attachUserIfPresent = async (req, res, next) => {
   return next();
 };
 
-// Export both in a single default object to avoid named export issues
 export default {
   verifyToken,
   attachUserIfPresent,
