@@ -11,10 +11,9 @@ import {
 
 import admin from 'firebase-admin';
 import fs from 'fs';
+import path from 'path';
 
-const serviceAccount = JSON.parse(
-  fs.readFileSync(new URL('../FirebaseService.json', import.meta.url))
-);
+
 
 if (!firebase.getApps || firebase.getApps().length === 0) {
   const firebaseConfig = {
@@ -29,6 +28,8 @@ if (!firebase.getApps || firebase.getApps().length === 0) {
 }
 
 if (!admin.apps.length) {
+  const serviceJson = process.env.FIREBASE_SERVICE_ACCOUNT;
+const serviceAccount = JSON.parse(serviceJson);
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
   });
