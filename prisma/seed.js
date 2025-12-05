@@ -71,7 +71,11 @@ async function main() {
     },
   });
 
-  const r1 = await prisma.report.create({
+  const users = [alice, bob, cara];
+  const neighborhoods = [mitte, kreuzberg, neukolln];
+  const categories = [lighting, roads, sanitation, graffiti];
+
+  await prisma.report.create({
     data: {
       title: 'Broken streetlight',
       description: 'Streetlight in Mitte is flickering.',
@@ -83,11 +87,10 @@ async function main() {
     },
   });
 
-  const r2 = await prisma.report.create({
+  await prisma.report.create({
     data: {
       title: 'Pothole on main road',
       description: 'Deep pothole near the market.',
-      imageUrl: null,
       status: 'IN_PROGRESS',
       authorId: alice.id,
       neighborhoodId: kreuzberg.id,
@@ -95,7 +98,7 @@ async function main() {
     },
   });
 
-  const r3 = await prisma.report.create({
+  await prisma.report.create({
     data: {
       title: 'Overflowing trash bin',
       description: 'Trash bins need emptying.',
@@ -107,54 +110,27 @@ async function main() {
     },
   });
 
-  const r4 = await prisma.report.create({
-    data: {
-      title: 'Graffiti on library wall',
-      description: 'Large graffiti on the side wall.',
-      imageUrl: null,
-      status: 'RESOLVED',
-      authorId: bob.id,
-      neighborhoodId: mitte.id,
-      categories: { connect: [{ id: graffiti.id }] },
-      statusChanges: {
-        create: [
-          { from: 'OPEN', to: 'IN_PROGRESS', changedBy: alice.email },
-          { from: 'IN_PROGRESS', to: 'RESOLVED', changedBy: alice.email },
-        ],
+  console.log('Creating 1000 demo reports for performance testing...');
+  for (let i = 0; i < 1000; i++) {
+    const randomUser = users[Math.floor(Math.random() * users.length)];
+    const randomNeighborhood = neighborhoods[Math.floor(Math.random() * neighborhoods.length)];
+    const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+    const statuses = ['OPEN', 'IN_PROGRESS', 'RESOLVED'];
+    const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+
+    await prisma.report.create({
+      data: {
+        title: `Seed report ${i}`,
+        description: `Demo entry generated automatically #${i}`,
+        authorId: randomUser.id,
+        neighborhoodId: randomNeighborhood.id,
+        status: randomStatus,
+        categories: { connect: [{ id: randomCategory.id }] },
       },
-    },
-  });
+    });
+  }
 
-  const r5 = await prisma.report.create({
-    data: {
-      title: 'Damaged playground swing',
-      description: 'One swing chain is broken.',
-      imageUrl: '/uploads/playground-swing.jpg',
-      status: 'OPEN',
-      authorId: cara.id,
-      neighborhoodId: kreuzberg.id,
-      categories: { connect: [{ id: lighting.id }] },
-    },
-  });
-
-  await prisma.attachment.create({
-    data: {
-      reportId: r1.id,
-      url: '/uploads/streetlight-close.jpg',
-      mimeType: 'image/jpeg',
-      sizeBytes: 240000,
-    },
-  });
-  await prisma.statusChange.create({
-    data: {
-      reportId: r1.id,
-      from: 'OPEN',
-      to: 'OPEN',
-      changedBy: alice.email,
-    },
-  });
-
-  console.log('Seed completed: roles, city, neighborhoods, categories, users, reports.');
+  console.log('✅ Seed completed: roles, cities, neighborhoods, categories, users, and 1000 reports.');
 }
 
 main()
