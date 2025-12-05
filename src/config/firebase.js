@@ -10,9 +10,6 @@ import {
 } from 'firebase/auth';
 
 import admin from 'firebase-admin';
-import fs from 'fs';
-import path from 'path';
-
 
 
 if (!firebase.getApps || firebase.getApps().length === 0) {
@@ -29,7 +26,7 @@ if (!firebase.getApps || firebase.getApps().length === 0) {
 
 if (!admin.apps.length) {
   const serviceJson = process.env.FIREBASE_SERVICE_ACCOUNT;
-const serviceAccount = JSON.parse(serviceJson);
+  const serviceAccount = JSON.parse(serviceJson);
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
   });

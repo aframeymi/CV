@@ -172,6 +172,39 @@ app.post('/track/:id/edit', async (req, res) => {
   }
 });
 
+app.post('/track/:id/delete', middleware.verifyToken, async (req, res) => {
+  try {
+    const reportId = req.params.id;
+    const email = req.user?.email;
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { role: true },
+    });
+    if (!user) return res.status(403).send('User not found');
+
+    const report = await prisma.report.findUnique({
+      where: { id: reportId },
+      include: { author: true },
+    });
+    if (!report) return res.status(404).send('Report not found');
+
+    const isAdmin = user.role?.title === 'Admin';
+    const isAuthor = report.authorId === user.id;
+    if (!isAdmin && !isAuthor) {
+      return res.status(403).send('You can only delete your own reports.');
+    }
+
+    await prisma.report.delete({ where: { id: reportId } });
+    res.redirect('/track');
+  } catch (err) {
+    console.error('Error deleting report:', err);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+
+
 app.get('/admin/report-stats', async (req, res) => {
   try {
     const rows = await prisma.$queryRawUnsafe(`
