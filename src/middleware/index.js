@@ -1,5 +1,7 @@
+// Firebase Admin SDK, used to verify login tokens 
 import { admin } from '../config/firebase.js';
 
+// Protects route by blocking the request unless user has a valid token
 const verifyToken = async (req, res, next) => {
   try {
     const idToken = req.cookies?.access_token;
@@ -16,6 +18,7 @@ const verifyToken = async (req, res, next) => {
   }
 };
 
+// Runs on every request: attaches the user if logged in
 const attachUserIfPresent = async (req, res, next) => {
   try {
     const idToken = req.cookies?.access_token;

@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+<%# Shared page head (stylesheet and page title) %>
 <%- include('includes/head') %>
 
 <body>
+  <%# Shared navigation bar %>
   <%- include('includes/navbar') %>
   <main class="main">
 
@@ -10,6 +12,7 @@
       <h1>REGISTER</h1>
       
       
+      <%# Registration form: posts the details to /api/register %>
       <form action="/api/register" method="post" target="_self">
         <input type="text" name="name" placeholder="Name" required> <br>
         <input type="text" name="surname" placeholder="Surname" required> <br>
@@ -27,13 +30,16 @@
         <input type="submit" id="sign-in" value="SIGN UP">
       </form>
 
+      <%# Show an error message if the server passed one to the page %>
       <% if (typeof error !== 'undefined') { %>
         <p style="color:red;"><%= error %></p>
       <% } %>
 
+      <%# Link to the login page %>
       <p>Already have an account? <a href="/sign_in">SIGN IN</a></p>
     </div>
   </main>
+  <%# Script with the profile menu toggle (callMenu) %>
   <script src="/script.js"></script>
 </body>
 </html>

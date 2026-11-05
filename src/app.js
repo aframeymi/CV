@@ -19,15 +19,13 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(middleware.attachUserIfPresent); 
 app.use(express.static('public'));
-
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '..', 'views'));
-
 app.use(reportsRouter);
 app.use(uploadRouter);
 app.use(router);
 
-
+// Page Routes
 app.get('/', (req, res) => {
   res.render('index', { title: 'Community Voice' });
 });
@@ -48,6 +46,7 @@ app.get('/profile', middleware.verifyToken, (req, res) => {
   res.render('profile', { title: 'Profile' });
 });
 
+// Loading cities & neighbourhoods 
 app.get('/report', async (req, res) => {
   try {
     const cities = await prisma.city.findMany({
@@ -61,6 +60,7 @@ app.get('/report', async (req, res) => {
   }
 });
 
+// New Report Submission
 app.post(
   '/submit-report',
   middleware.verifyToken,
@@ -70,22 +70,27 @@ app.post(
       const { title, description, neighborhoodId } = req.body;
       const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
+      // Validate requiered fields
       if (!title || !description || !neighborhoodId) {
         return res.status(422).send('title, description, and neighborhoodId are required.');
       }
 
+      // Find the user submiting report
       const email = req.user?.email;
       const user = await prisma.user.findUnique({ where: { email } });
       if (!user) {
         return res.status(403).send('User profile not found.');
       }
 
+      // See if selected neighbourhood exists
       const nbh = await prisma.neighborhood.findUnique({ where: { id: neighborhoodId } });
       if (!nbh) {
         return res.status(422).send('Invalid neighborhoodId.');
       }
 
+      // Save the report, status history, and attachment
       await prisma.$transaction(async (tx) => {
+        // Create report
         const created = await tx.report.create({
           data: {
             title,
@@ -97,6 +102,7 @@ app.post(
           },
         });
 
+        // Initial status 
         await tx.statusChange.create({
           data: {
             reportId: created.id,
@@ -106,6 +112,7 @@ app.post(
           },
         });
 
+        // Save image status (if uploaded)
         if (imageUrl) {
           await tx.attachment.create({
             data: {
@@ -118,6 +125,7 @@ app.post(
         }
       });
 
+      // Send user to the lists of reports
       return res.redirect('/track');
     } catch (error) {
       console.error('Error submitting report:', error);
@@ -126,6 +134,7 @@ app.post(
   }
 );
 
+// List all reports with author & location
 app.get('/track', async (req, res) => {
   try {
     const reports = await prisma.report.findMany({
@@ -143,6 +152,7 @@ app.get('/track', async (req, res) => {
   }
 });
 
+// Show the edit form for one report
 app.get('/track/:id/edit', async (req, res) => {
   const { id } = req.params;
   try {
@@ -156,6 +166,7 @@ app.get('/track/:id/edit', async (req, res) => {
   }
 });
 
+// Save edited title and description for one report
 app.post('/track/:id/edit', async (req, res) => {
   const { id } = req.params;
   const { title, description } = req.body;
@@ -172,6 +183,7 @@ app.post('/track/:id/edit', async (req, res) => {
   }
 });
 
+// Delete a report (by author or admin)
 app.post('/track/:id/delete', middleware.verifyToken, async (req, res) => {
   try {
     const reportId = req.params.id;
@@ -189,12 +201,12 @@ app.post('/track/:id/delete', middleware.verifyToken, async (req, res) => {
     });
     if (!report) return res.status(404).send('Report not found');
 
+    // Check if the user is admin or reporter's author
     const isAdmin = user.role?.title === 'Admin';
     const isAuthor = report.authorId === user.id;
     if (!isAdmin && !isAuthor) {
       return res.status(403).send('You can only delete your own reports.');
     }
-
     await prisma.report.delete({ where: { id: reportId } });
     res.redirect('/track');
   } catch (err) {
@@ -204,7 +216,7 @@ app.post('/track/:id/delete', middleware.verifyToken, async (req, res) => {
 });
 
 
-
+// Admin: Count reports per city and status using a raw SQL query
 app.get('/admin/report-stats', async (req, res) => {
   try {
     const rows = await prisma.$queryRawUnsafe(`
@@ -225,6 +237,7 @@ app.get('/admin/report-stats', async (req, res) => {
   }
 });
 
+// Admin: summary stats (status counts, top reporters, busiest neighborhoods)
 app.get('/admin/analytics', async (req, res) => {
   try {
     const countsByStatus = await prisma.report.groupBy({
@@ -276,6 +289,7 @@ app.get('/admin/analytics', async (req, res) => {
   }
 });
 
+// Start Server
 const port = process.env.PORT || 5000;
 app.listen(port, () => {
   console.log(`Server started on http://localhost:${port}`);

@@ -1,4 +1,6 @@
+// Load environment variables from the .env file
 import 'dotenv/config';
+// Firebase client SDK: app setup and auth functions
 import * as firebase from 'firebase/app';
 import {
   getAuth,
@@ -9,9 +11,10 @@ import {
   sendPasswordResetEmail,
 } from 'firebase/auth';
 
+// Firebase Admin SDK (server side), used to verify tokens
 import admin from 'firebase-admin';
 
-
+// Initialize the Firebase client app only once
 if (!firebase.getApps || firebase.getApps().length === 0) {
   const firebaseConfig = {
     apiKey: process.env.FIREBASE_API_KEY,
@@ -24,7 +27,10 @@ if (!firebase.getApps || firebase.getApps().length === 0) {
   firebase.initializeApp(firebaseConfig);
 }
 
+// Initialize the Admin SDK only once
 if (!admin.apps.length) {
+
+  // Service account credentials are stored as JSON text in an environment variable
   const serviceJson = process.env.FIREBASE_SERVICE_ACCOUNT;
   const serviceAccount = JSON.parse(serviceJson);
   admin.initializeApp({
@@ -32,8 +38,10 @@ if (!admin.apps.length) {
   });
 }
 
+// Shared Firebase Auth instance
 const auth = getAuth();
 
+// Export auth helpers and the Admin SDK for use in controllers and middleware
 export {
   auth,
   getAuth,

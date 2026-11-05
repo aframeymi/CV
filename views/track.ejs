@@ -1,8 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
+<%# Shared page head (stylesheet and page title) %>
 <%- include('includes/head') %>
 
 <body>
+
+    <%# Shared navigation bar %>
     <%- include('includes/navbar') %>
 
 
@@ -16,6 +20,8 @@
         You recieved 50 bonus points.
     </h2>
 </div>
+
+<%# Progress tracker: Received, In Process, Processed (static, not linked to real report status) %>
 <div class="progress-container">
     <div class="step">
         <div class="circle">
@@ -39,8 +45,12 @@
     </div>
 </div>
 <br>
+
+<%# List of all reports sent by the server %>
 <div class="report-section">
     <ul>
+    
+    <%# Loop: one card per report %>    
     <% reports.forEach(report => { %>
         <li class="report-card">
             <div>
@@ -52,9 +62,13 @@
             <br>
             Description: <%= report.description %>
             <br>
+
+            <%# Edit button: opens the edit page for this report %>
             <form action="/track/<%= report.id %>/edit" method="GET" style="display:inline;">
                 <button class="edit" type="submit">Edit</button>
               </form>
+
+              <%# Delete button: sends a POST to delete this report %>
               <form action="/track/<%= report.id %>/delete" method="POST" style="display:inline;">
                 <button class="delete" type="submit">Delete</button>
               </form>
@@ -69,6 +83,8 @@
 <h3 class="simloctext">
     234 more similar reports in your area.
 </h3>    
+
+<%# Script with the profile menu toggle (callMenu) %>
 <script src="/script.js"></script>
 
 </body>

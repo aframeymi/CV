@@ -1,19 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
+    <%# Shared page head (stylesheet and page title) %>
     <%- include('includes/head') %>
 
 </head>
 <body>
+
+    <%# Shared navigation bar %>
     <%- include('includes/navbar') %>
 
     <main>
         <h2>
             Edit your report
         </h2>
+
+        <%# Edit form: posts the changes to /track/<id>/edit %>
         <form action="/track/<%= report.id %>/edit" method="POST">
+
+            <%# Title field, pre-filled with the current title %>
             <input type="text" value="<%= report.title %>" name="title" placeholder="name" /><br />
+            
+            <%# Description field, pre-filled with the current description %>
             <input type="text" value="<%= report.description %>" name="description" placeholder="detail" /><br />
+            
             <input type="submit" value="submit">
           </form>
     </main>

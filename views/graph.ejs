@@ -1,26 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
+<%# Shared page head (stylesheet and page title) %>
 <%- include('includes/head') %>
 
 <body>
+    <%# Shared navigation bar %>
     <%- include('includes/navbar') %>
 
+<%# Bar chart: busiest neighborhoods (drawn from live data by the script below) %>
 <div class="graph-container">
     <div class="graph">
-        <img src="/graph.png">
+        <canvas id="neighborhoodChart" width="400" height="300" style="max-width:100%"></canvas>
     </div>
 </div>  
+<%# Pie chart: reports by status (drawn from live data by the script below) %>
 <div class="piechart-container">
     <div class="piechart">
-        <img src="/piechart.png">
+        <canvas id="statusChart" width="400" height="300" style="max-width:100%"></canvas>
     </div>
 </div>
+<%# Map of Berlin %>
 <div class="map-container">
     <iframe class="map" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d313275.8136508344!2d13.0951001857
     5723!3d52.506386175110244!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47a84e373f035901%3A0x4
     2120465b5e3b70!2sBerlin!5e1!3m2!1sen!2sde!4v1740049865470!5m2!1sen!2sde" width="50%" height="350px" 
     style="border:0; margin: -5px;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
     </div>
+
+
+<%# Chart.js library (pinned version) %>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  // Load the statistics from the server, then draw both charts
+  fetch('/admin/analytics')
+    .then((res) => {
+      if (!res.ok) throw new Error('Request failed');
+      return res.json();
+    })
+    .then((data) => {
+      // Pie chart: number of reports per status
+      new Chart(document.getElementById('statusChart'), {
+        type: 'pie',
+        data: {
+          labels: data.countsByStatus.map((s) => s.status),
+          datasets: [{ data: data.countsByStatus.map((s) => s._count._all) }],
+        },
+        options: { responsive: false },
+      });
+
+      // Bar chart: number of reports in the busiest neighborhoods
+      new Chart(document.getElementById('neighborhoodChart'), {
+        type: 'bar',
+        data: {
+          labels: data.busiestNeighborhoods.map((n) => n.neighborhood + ' (' + n.city + ')'),
+          datasets: [{ label: 'Reports', data: data.busiestNeighborhoods.map((n) => n.count) }],
+        },
+        options: { responsive: false },
+      });
+    })
+    .catch((err) => {
+      // If the data cannot be loaded, show a message instead of the charts
+      console.error('Could not load chart data:', err);
+      document.querySelector('.graph-container').insertAdjacentHTML('beforeend', '<p>Could not load chart data.</p>');
+    });
+</script>
+<%# Script with the profile menu toggle (callMenu), as on the other pages %>
+<script src="/script.js"></script>
 
 </body>
 </html>

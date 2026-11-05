@@ -1,9 +1,14 @@
+// Prisma database client and bcrypt for hashing passwords
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
+// Create the database client
 const prisma = new PrismaClient();
 
+// Fills the database with demo data (run with `npm run prisma:seed`)
 async function main() {
+
+// Delete all existing data first (children before parents, to respect relations)
   await prisma.statusChange.deleteMany();
   await prisma.attachment.deleteMany();
   await prisma.report.deleteMany();
@@ -13,11 +18,13 @@ async function main() {
   await prisma.category.deleteMany();
   await prisma.role.deleteMany();
 
+// Create the two roles
   const [adminRole, citizenRole] = await Promise.all([
     prisma.role.create({ data: { title: 'Admin', description: 'Platform administrator' } }),
     prisma.role.create({ data: { title: 'Citizen', description: 'Regular user' } }),
   ]);
 
+// Create a city with three neighborhoods
   const berlin = await prisma.city.create({ data: { name: 'Berlin', code: 'BE' } });
   const [mitte, kreuzberg, neukolln] = await Promise.all([
     prisma.neighborhood.create({ data: { name: 'Mitte', cityId: berlin.id } }),
@@ -25,6 +32,7 @@ async function main() {
     prisma.neighborhood.create({ data: { name: 'Neukölln', cityId: berlin.id } }),
   ]);
 
+// Create the report categories
   const [lighting, roads, sanitation, graffiti] = await Promise.all([
     prisma.category.create({ data: { name: 'Lighting' } }),
     prisma.category.create({ data: { name: 'Roads' } }),
@@ -32,12 +40,14 @@ async function main() {
     prisma.category.create({ data: { name: 'Graffiti' } }),
   ]);
 
+// Hash the demo passwords
   const [alicePw, bobPw, caraPw] = await Promise.all([
     bcrypt.hash('AlicePass123!', 10),
     bcrypt.hash('BobPass123!', 10),
     bcrypt.hash('CaraPass123!', 10),
   ]);
 
+// Create three demo users: Alice (Admin), Bob and Cara (Citizens)
   const alice = await prisma.user.create({
     data: {
       firstName: 'Alice',
@@ -71,10 +81,12 @@ async function main() {
     },
   });
 
+// Lists used to pick random values for the demo reports
   const users = [alice, bob, cara];
   const neighborhoods = [mitte, kreuzberg, neukolln];
   const categories = [lighting, roads, sanitation, graffiti];
 
+// Create three hand-written sample reports
   await prisma.report.create({
     data: {
       title: 'Broken streetlight',
@@ -110,6 +122,7 @@ async function main() {
     },
   });
 
+// Create 1000 random reports (random user, neighborhood, category, status) for performance testing
   console.log('Creating 1000 demo reports for performance testing...');
   for (let i = 0; i < 1000; i++) {
     const randomUser = users[Math.floor(Math.random() * users.length)];
@@ -133,6 +146,7 @@ async function main() {
   console.log('✅ Seed completed: roles, cities, neighborhoods, categories, users, and 1000 reports.');
 }
 
+// Run the seed: log errors and exit with failure, always close the database connection
 main()
   .catch((e) => {
     console.error('Seed error:', e);
