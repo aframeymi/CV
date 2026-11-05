@@ -132,6 +132,8 @@ See the [procedural instructions](docs/procedural-instructions.md) for testing p
 
 ## Configuration and security
 
+The [threat model](docs/security/threat-model.md) lists the assets, trust boundaries, and known threats, with the current status of each.
+
 - Never commit `.env`, Firebase service-account JSON, database passwords, or private keys.
 - Use a separate Firebase project and database for development where possible.
 - Validate uploaded file types, file names, and file sizes before deploying publicly.
