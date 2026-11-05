@@ -31,7 +31,7 @@ Run Community Voice locally and confirm that the application can connect to its 
    npm install
    ```
 
-3. Create a `.env` file in the project root and add the database, Firebase, and port variables described in the README. Never commit this file.
+3. Copy `.env.example` to `.env` in the project root and fill in the database, Firebase, and port variables described in the README. Never commit this file.
 
 4. Generate the Prisma client:
 

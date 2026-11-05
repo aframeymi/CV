@@ -60,7 +60,7 @@ npm install
 
 ### 2. Configure the environment
 
-Create a `.env` file in the project root. Do not commit this file.
+Copy `.env.example` to `.env` in the project root and fill in your values. Do not commit `.env`.
 
 ```env
 DATABASE_URL="postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require"
