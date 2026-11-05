@@ -2,11 +2,11 @@
   "name": "cv",
   "version": "1.0.0",
   "description": "This project aims to creat a platform where citizens of Berlin can report city infrastructural problems that they see in their everyday life to the municipality.",
-  "main": "app.js",
+  "main": "src/server.js",
   "type": "module",
   "scripts": {
-    "start": "node src/app.js",
-    "dev": "nodemon src/app.js",
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
     "test": "jest",
     "prisma:seed": "prisma db seed"
   },
