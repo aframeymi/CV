@@ -20,6 +20,7 @@ npm install
 npx prisma generate
 npx prisma migrate deploy
 npm run prisma:seed
+npm run prisma:seed:demo   # development database only
 npm run dev
 ```
 

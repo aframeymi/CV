@@ -81,8 +81,11 @@ PORT=5000
 ```bash
 npx prisma generate
 npx prisma migrate deploy
-npm run prisma:seed
+npm run prisma:seed        # reference data: roles, cities, neighbourhoods, categories
+npm run prisma:seed:demo   # optional, development database only: example users and 1,000 reports
 ```
+
+The reference seed only adds missing rows, so it is safe on any database. The demo seed refuses to run when `NODE_ENV=production`, replaces only example users (`@example.com`) and their reports, and never creates an admin account.
 
 ### 4. Start the application
 
@@ -139,7 +142,7 @@ The [threat model](docs/security/threat-model.md) lists the assets, trust bounda
 - Validate uploaded file types, file names, and file sizes before deploying publicly.
 - Use HTTPS in production so authentication cookies and credentials are protected in transit.
 - Review authorisation checks on every route that reads, edits, or deletes user data.
-- Replace development seed passwords before using the database outside local development.
+- Use a separate database for development, such as a Neon branch, and run the demo seed only there.
 
 ## Deployment
 

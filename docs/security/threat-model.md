@@ -173,7 +173,7 @@ The application runs entirely on managed cloud services, so there is no server h
 
 | ID | Threat | STRIDE | Assets | Risk | Status | Fix |
 |---|---|---|---|---|---|---|
-| T-09 | Account takeover by email: users are matched by email and `email_verified` is never checked, so registering a seeded address in Firebase gives that user's role, including admin. [`src/app.js`](../../src/app.js), [`prisma/seed.js`](../../prisma/seed.js) | S, E | A1, A4, A8 | High | Open | Step 2 |
+| T-09 | Account takeover by email: users are matched by email and `email_verified` is never checked, so registering a seeded address in Firebase gives that user's role, including admin. Confirmed on 2026-11-19: the shared database held a seeded admin with no Firebase account. The seed no longer creates admins ([`demo-data.js`](../../prisma/seeds/demo-data.js)), but the existing row stays until production is cleaned. [`src/app.js`](../../src/app.js) | S, E | A1, A4, A8 | High | Open | Step 2 |
 | T-10 | One shared Firebase client on the server means simultaneous requests can act on the wrong user, and logout signs out that shared client. [`firebase-auth-controller.js`](../../src/controllers/firebase-auth-controller.js) | S, T | A3 | High | Open | Step 3 |
 | T-11 | Password guessing and credential stuffing, because login has no rate limit | S | A2, A3 | High | Open | Step 6 |
 | T-12 | A stolen token stays valid after logout, because logout only clears the browser cookie and nothing is revoked | S | A3 | Medium | Open | Step 3 |
@@ -231,7 +231,7 @@ The application runs entirely on managed cloud services, so there is no server h
 | T-41 | A secret is committed by mistake. None found in the history so far, but no automated check prevents it | I | A6, A7 | Medium | Open | Step 8 |
 | T-42 | Unreviewed or untested code reaches production, because there is no CI and `main` is not protected | T | A10 | Medium | Open | Step 8 |
 | T-43 | Service-account key misuse. It is long-lived and has broad administrative rights | S, E | A6 | Medium | Open | Rotate if ever exposed, document the procedure in Step 9 |
-| T-44 | `npm run prisma:seed` deletes all data first, so running it against production destroys every report and user. [`prisma/seed.js`](../../prisma/seed.js) | T, D | A1, A4 | Medium | Open | Step 8 |
+| T-44 | The seed script deleted all data first, so running it against production destroyed every report and user. Now the reference seed never deletes, and the demo seed needs `--demo`, refuses `NODE_ENV=production`, and replaces only `@example.com` users and their reports. [`seed.js`](../../prisma/seed.js), [`demo-seeding-policy.js`](../../prisma/seeds/demo-seeding-policy.js), tested in [`seed.test.js`](../../tests/Jest/seed.test.js) | T, D | A1, A4 | Medium | Mitigated | Done |
 | T-45 | Uploaded files are lost on redeploy if Render storage is not persistent | D | A5 | Medium | Accepted | See section 8 |
 
 ## 7. STRIDE coverage
@@ -264,8 +264,8 @@ These risks are left in place on purpose, because they are the provider's respon
 These could not be confirmed from the repository, because they are settings in external dashboards.
 
 - [ ] `NODE_ENV=production` is set on Render. If not, Express shows stack traces to users (T-33).
-- [ ] Whether the deployed database was seeded. If so, T-09 applies to the seeded admin address unless it already has a Firebase account.
-- [ ] Whether the local `.env` and the deployed service share one database. If so, local testing and seeding affect production (T-44).
+- [x] Whether the deployed database was seeded. **Yes**: it held three example users, one of them an admin with no Firebase account (T-09). The site was not running, and all other data was test data from the developer.
+- [x] Whether the local `.env` and the deployed service share one database. **Yes**: both used the same Neon branch. A separate development branch is being created so local work never touches production.
 - [ ] Email enumeration protection is enabled in Firebase Authentication (T-13).
 - [ ] Whether Render storage for this service is persistent (T-45).
 - [ ] Which IP addresses Neon accepts connections from (T-04).
