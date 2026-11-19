@@ -3,7 +3,7 @@ import request from 'supertest';
 import app from '../../src/app.js';
 import prisma from '../../prismaClient.js';
 import { SESSION_COOKIE, citizen, logInAs, rejectToken } from './helpers/auth.js';
-import { verifyIdToken } from './mocks/firebase.js';
+import { verifySessionCookie } from './mocks/firebase.js';
 
 describe('public pages', () => {
   it.each(['/', '/sign_in', '/sign_up', '/graph'])('renders %s without login', async (url) => {
@@ -68,6 +68,6 @@ describe('static files', () => {
     const response = await request(app).get('/style.css').set('Cookie', SESSION_COOKIE);
 
     expect(response.status).toBe(200);
-    expect(verifyIdToken).not.toHaveBeenCalled();
+    expect(verifySessionCookie).not.toHaveBeenCalled();
   });
 });

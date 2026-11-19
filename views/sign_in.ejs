@@ -14,6 +14,14 @@
         <h1>WELCOME</h1>
         <img src="/pp.jpg" alt="profile-pic">
         
+        <%# Messages from the server, for example a failed login %>
+        <% if (typeof error !== 'undefined' && error) { %>
+            <p class="form-error" role="alert"><%= error %></p>
+        <% } %>
+        <% if (typeof notice !== 'undefined' && notice) { %>
+            <p class="form-notice" role="status"><%= notice %></p>
+        <% } %>
+
         <%# Login form: posts email and password to /api/login %>
         <form method="POST" action="/api/login">
             <input type="email" name="email" placeholder="Email" required />

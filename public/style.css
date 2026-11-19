@@ -707,3 +707,12 @@ li {
 }
 
 
+
+/* Messages shown above sign-in and registration forms */
+.form-error {
+    color: #b00020;
+}
+
+.form-notice {
+    color: #1b5e20;
+}

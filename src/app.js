@@ -12,6 +12,9 @@ import { findTopReporters, getPublicReportStatistics } from './services/report-s
 
 const app = express();
 
+// Render terminates HTTPS at its proxy, so trust its X-Forwarded-Proto header for req.secure
+app.set('trust proxy', 1);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // Static files never need the session, so serve them before it is checked
