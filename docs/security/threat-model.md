@@ -93,8 +93,8 @@ flowchart LR
 | ID | Asset | Where it lives | Most important property |
 |---|---|---|---|
 | A1 | User personal data: names, emails, phone numbers | Neon, Firebase | Confidentiality |
-| A2 | User passwords | Firebase, plus bcrypt hashes in Neon | Confidentiality |
-| A3 | Session tokens | `access_token` browser cookie | Confidentiality, authenticity |
+| A2 | User passwords | Firebase only | Confidentiality |
+| A3 | Session cookies | `session` browser cookie, a Firebase session cookie | Confidentiality, authenticity |
 | A4 | Report content and status history | Neon | Integrity |
 | A5 | Uploaded images | `public/uploads` | Integrity |
 | A6 | Firebase service-account key | `.env`, Render environment, `src/FirebaseService.json` locally | Confidentiality |
@@ -136,10 +136,10 @@ This table shows the protection each route has **today**. "Verified login" means
 | `POST /api/upload` | **No** | **None** | See T-22 |
 | `POST /api/reports` | Yes | Not needed | Cannot succeed: omits a required field |
 | `GET /api/reports` | No | Not needed | Cannot succeed: selects fields that do not exist |
-| `POST /api/register` | No | Not needed | No rate limit |
-| `POST /api/login` | No | Not needed | No rate limit |
-| `POST /api/logout` | No | Not needed | No CSRF protection |
-| `POST /api/reset-password` | No | Not needed | Crashes: the function is not imported |
+| `POST /api/register` | No | Not needed | Stateless Firebase call, verification email sent. No rate limit yet |
+| `POST /api/login` | No | Not needed | Generic error message. No rate limit yet |
+| `POST /api/logout` | No | Not needed | Revokes the session at Firebase |
+| `POST /api/reset-password` | No | Not needed | Same notice whether or not the account exists |
 
 ## 6. Threats by layer
 
@@ -164,7 +164,7 @@ The application runs entirely on managed cloud services, so there is no server h
 | ID | Threat | STRIDE | Assets | Risk | Status | Fix |
 |---|---|---|---|---|---|---|
 | T-05 | Traffic interception between the browser and Render | I, T | A1, A2, A3 | Low | Mitigated | Render serves HTTPS. HSTS is still missing, see T-06 |
-| T-06 | HTTPS downgrade, or the session cookie sent over plain HTTP, because there is no HSTS header and no `Secure` cookie flag | I, S | A3 | Medium | Open | Steps 3, 6 |
+| T-06 | HTTPS downgrade, because there is no HSTS header. The session cookie is now marked `Secure` whenever the request reached Render over HTTPS ([`session-service.js`](../../src/services/session-service.js)) | I, S | A3 | Medium | Open | Step 6 |
 | T-07 | Traffic interception between the application and Neon | I, T | A1, A7 | Low | Mitigated | `sslmode=require` and `channel_binding=require` |
 | T-08 | Traffic interception between the application and Firebase | I, T | A2, A3 | Low | Mitigated | The Firebase SDKs use HTTPS |
 
@@ -175,12 +175,12 @@ The application runs entirely on managed cloud services, so there is no server h
 | ID | Threat | STRIDE | Assets | Risk | Status | Fix |
 |---|---|---|---|---|---|---|
 | T-09 | Account takeover by email: users are matched by email and `email_verified` is never checked, so registering a seeded address in Firebase gives that user's role, including admin. Confirmed on 2026-11-19: the shared database held a seeded admin with no Firebase account. **Fixed:** profiles are matched by Firebase ID (now unique), a verified email is required, and an email clash with an existing profile is refused rather than linked. The seed no longer creates admins. [`user-profile-service.js`](../../src/services/user-profile-service.js), [`middleware/index.js`](../../src/middleware/index.js), tested in [`user-profile-service.test.js`](../../tests/Jest/user-profile-service.test.js) | S, E | A1, A4, A8 | High | Mitigated | Step 2 |
-| T-10 | One shared Firebase client on the server means simultaneous requests can act on the wrong user, and logout signs out that shared client. [`firebase-auth-controller.js`](../../src/controllers/firebase-auth-controller.js) | S, T | A3 | High | Open | Step 3 |
+| T-10 | One shared Firebase client on the server meant simultaneous requests could act on the wrong user. **Fixed:** the server no longer uses the client SDK. Each sign-in, sign-up, and email request is its own REST call. [`firebase-identity.js`](../../src/services/firebase-identity.js), tested in [`firebase-identity.test.js`](../../tests/Jest/firebase-identity.test.js) | S, T | A3 | High | Mitigated | Step 3 |
 | T-11 | Password guessing and credential stuffing, because login has no rate limit | S | A2, A3 | High | Open | Step 6 |
-| T-12 | A stolen token stays valid after logout, because logout only clears the browser cookie and nothing is revoked | S | A3 | Medium | Open | Step 3 |
-| T-13 | Account enumeration and internal detail exposure through raw Firebase error messages | I | A1 | Medium | Open | Steps 3, 7 |
-| T-14 | Weak passwords, because the server sets no password policy and ignores `confirm_password` | S | A2 | Medium | Open | Step 5 |
-| T-15 | Password hashes are stored in Neon although Firebase handles login, so a database leak exposes more than it needs to. [`user-controller.js`](../../src/controllers/user-controller.js) | I | A2 | Medium | Open | Step 3 |
+| T-12 | A stolen token stayed valid after logout, because logout only cleared the browser cookie. **Fixed:** sessions are one-day Firebase session cookies, logout revokes them at Firebase, and every request checks for revocation. [`session-service.js`](../../src/services/session-service.js), tested in [`auth.test.js`](../../tests/Jest/auth.test.js) | S | A3 | Medium | Mitigated | Step 3 |
+| T-13 | Account enumeration and internal detail exposure through raw Firebase error messages. **Fixed:** login gives one message for a wrong email or password, password reset gives one notice whether or not the account exists, and Firebase codes are never shown. Registration still says when an email is taken, see section 8. [`auth-controller.js`](../../src/controllers/auth-controller.js) | I | A1 | Medium | Mitigated | Step 3 |
+| T-14 | Weak passwords, because the server sets no password policy beyond the Firebase minimum of 6 characters. Registration now checks that both passwords match | S | A2 | Medium | Open | Step 5 |
+| T-15 | Password hashes were stored in Neon although Firebase handles login, so a database leak exposed more than it needed to. **Fixed:** the column and the bcrypt dependency are removed. [`drop_stored_password_hashes`](../../prisma/migrations/20261120090000_drop_stored_password_hashes/migration.sql) | I | A2 | Medium | Mitigated | Step 3 |
 | T-16 | Spam accounts and email flooding through registration and password reset | D, S | A9 | Medium | Open | Step 6 |
 
 **Authorization**
@@ -212,7 +212,7 @@ The application runs entirely on managed cloud services, so there is no server h
 
 | ID | Threat | STRIDE | Assets | Risk | Status | Fix |
 |---|---|---|---|---|---|---|
-| T-30 | Cross-site request forgery on every state-changing form. The cookie sets no `SameSite`, and there are no CSRF tokens, so protection depends on browser defaults | T, E | A4 | High | Open | Steps 3, 6 |
+| T-30 | Cross-site request forgery on state-changing forms. The session cookie is now `SameSite=Lax`, so browsers do not send it on cross-site form posts, but there are no CSRF tokens as a second layer | T, E | A4 | Medium | Open | Step 6 |
 | T-31 | No security headers, so there is no Content Security Policy as a second line of defence against XSS, and pages can be framed for clickjacking | T, I | A3 | High | Open | Step 6 |
 | T-32 | Chart.js loads from a CDN with no integrity hash, so a compromised file would run on the page. [`graph.ejs`](../../views/graph.ejs) | T, E | A3 | Medium | Open | Step 6 |
 
@@ -241,7 +241,7 @@ Every STRIDE category is represented at the application boundary (B1). This tabl
 
 | Category | Worst open example | Risk |
 |---|---|---|
-| Spoofing | T-10 shared Firebase client on the server | High |
+| Spoofing | T-11 password guessing, no rate limit | High |
 | Tampering | T-22 stored XSS through file upload | Critical |
 | Repudiation | T-34 no audit record | Medium |
 | Information disclosure | T-31 no security headers | High |
@@ -258,6 +258,8 @@ These risks are left in place on purpose, because they are the provider's respon
 | T-03 volumetric attacks | Mitigation happens at the provider edge. Application rate limits (Step 6) only cover abuse at the request level. |
 | T-45 upload durability | This affects availability of images, not their confidentiality. Object storage would be the proper fix, and is beyond the Level 1 scope. |
 | No multi-factor authentication | Firebase can provide it, but it adds significant work for a project of this size. |
+| Registration reveals taken addresses (part of T-13) | A person registering must be told that their address already has an account. Hiding it would need an email-based sign-up flow. Rate limits in Step 6 slow down anyone testing many addresses. |
+| One shared Firebase project for development and production | Accounts created while testing locally also exist for the live site. A second Firebase project would separate them, at the cost of more setup. |
 | Dependence on third parties | The application relies on the security of Render, Neon, Firebase, and npm. Step 8 reduces this risk but cannot remove it. |
 
 ## 9. Assumptions to verify

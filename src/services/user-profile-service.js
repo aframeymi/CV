@@ -5,17 +5,18 @@ const UNIQUE_CONSTRAINT_VIOLATION = 'P2002';
 
 export class ProfileConflictError extends Error {}
 
-// Profiles are matched by Firebase ID, never by email: an email alone does not prove who someone is
-export async function findOrCreateProfile(token) {
+// Profiles are matched by Firebase ID, never by email: an email alone does not prove who someone is.
+// `details` holds optional fields that only the registration form provides.
+export async function findOrCreateProfile(token, details = {}) {
   const existing = await findProfileByFirebaseUid(token.uid);
-  return existing ?? createCitizenProfile(token);
+  return existing ?? createCitizenProfile(token, details);
 }
 
 function findProfileByFirebaseUid(firebaseUid) {
   return prisma.user.findUnique({ where: { firebaseUid }, include: { role: true } });
 }
 
-async function createCitizenProfile(token) {
+async function createCitizenProfile(token, { phone = '' }) {
   const citizenRole = await prisma.role.findUniqueOrThrow({ where: { title: CITIZEN_ROLE } });
   const { firstName, lastName } = splitDisplayName(token.name);
   try {
@@ -25,7 +26,7 @@ async function createCitizenProfile(token) {
         email: token.email,
         firstName,
         lastName,
-        phone: '',
+        phone,
         roleId: citizenRole.id,
       },
       include: { role: true },

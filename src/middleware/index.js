@@ -1,21 +1,6 @@
-import { admin } from '../config/firebase.js';
 import { isAdmin } from '../policies/roles.js';
+import { readSession } from '../services/session-service.js';
 import { findOrCreateProfile, ProfileConflictError } from '../services/user-profile-service.js';
-
-const SESSION_COOKIE = 'access_token';
-
-// Returns the verified Firebase token from the session cookie, or null if it is missing or invalid
-async function readSessionToken(req) {
-  const idToken = req.cookies?.[SESSION_COOKIE];
-  if (!idToken) {
-    return null;
-  }
-  try {
-    return await admin.auth().verifyIdToken(idToken);
-  } catch {
-    return null;
-  }
-}
 
 function rememberToken(req, res, token) {
   req.user = token;
@@ -24,7 +9,7 @@ function rememberToken(req, res, token) {
 
 // Lets any logged-in user through. Used only by the old /api/reports route.
 const verifyToken = async (req, res, next) => {
-  const token = await readSessionToken(req);
+  const token = await readSession(req);
   if (!token) {
     return res.status(401).json({ error: 'Please log in.' });
   }
@@ -34,7 +19,7 @@ const verifyToken = async (req, res, next) => {
 
 // Lets through a logged-in user with a verified email, and loads their profile into req.currentUser
 const requireVerifiedUser = async (req, res, next) => {
-  const token = await readSessionToken(req);
+  const token = await readSession(req);
   if (!token) {
     return res.status(401).json({ error: 'Please log in.' });
   }
@@ -63,7 +48,7 @@ const requireAdmin = (req, res, next) => {
 
 // Runs on every request so pages can show whether someone is logged in. Never blocks a request.
 const attachUserIfPresent = async (req, res, next) => {
-  const token = await readSessionToken(req);
+  const token = await readSession(req);
   if (token) {
     rememberToken(req, res, token);
   } else {

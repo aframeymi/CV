@@ -106,3 +106,15 @@ describe('seedDemoData', () => {
     expect(prisma.report.create).toHaveBeenCalledTimes(1003);
   });
 });
+
+describe('demo users', () => {
+  it('store no password data, because Firebase handles all passwords', async () => {
+    const prisma = fakePrismaForDemoData();
+
+    await seedDemoData(prisma, referenceData);
+
+    prisma.user.create.mock.calls.forEach(([query]) => {
+      expect(query.data).not.toHaveProperty('passwordHash');
+    });
+  });
+});

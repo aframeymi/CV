@@ -1,7 +1,7 @@
-import { verifyIdToken } from '../mocks/firebase.js';
+import { verifySessionCookie } from '../mocks/firebase.js';
 import prisma from '../mocks/prismaClient.js';
 
-export const SESSION_COOKIE = 'access_token=test-token';
+export const SESSION_COOKIE = 'session=test-session';
 
 export const citizen = {
   id: 'user-1',
@@ -28,11 +28,11 @@ export function tokenFor(user, { emailVerified = true } = {}) {
 
 // Make the fake Firebase accept the test cookie as this user, and the fake database return their profile
 export function logInAs(user, { emailVerified = true } = {}) {
-  verifyIdToken.mockResolvedValue(tokenFor(user, { emailVerified }));
+  verifySessionCookie.mockResolvedValue(tokenFor(user, { emailVerified }));
   prisma.user.findUnique.mockResolvedValue(user);
 }
 
 // Make the fake Firebase reject the test cookie, like an expired or forged token
 export function rejectToken() {
-  verifyIdToken.mockRejectedValue(new Error('invalid token'));
+  verifySessionCookie.mockRejectedValue(new Error('invalid token'));
 }

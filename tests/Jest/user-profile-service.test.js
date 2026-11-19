@@ -77,3 +77,13 @@ describe('findOrCreateProfile', () => {
     await expect(findOrCreateProfile(token)).rejects.toThrow('connection lost');
   });
 });
+
+describe('findOrCreateProfile with registration details', () => {
+  it('stores the phone number from the registration form', async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+
+    await findOrCreateProfile(token, { phone: '0301234567' });
+
+    expect(prisma.user.create.mock.calls[0][0].data.phone).toBe('0301234567');
+  });
+});

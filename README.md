@@ -66,11 +66,6 @@ Copy `.env.example` to `.env` in the project root and fill in your values. Do no
 ```env
 DATABASE_URL="postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require"
 FIREBASE_API_KEY="your-firebase-api-key"
-FIREBASE_AUTH_DOMAIN="your-project.firebaseapp.com"
-FIREBASE_PROJECT_ID="your-project-id"
-FIREBASE_STORAGE_BUCKET="your-project.firebasestorage.app"
-FIREBASE_MESSAGING_SENDER_ID="your-sender-id"
-FIREBASE_APP_ID="your-app-id"
 FIREBASE_SERVICE_ACCOUNT=
 PORT=5000
 ```
@@ -143,6 +138,8 @@ The [threat model](docs/security/threat-model.md) lists the assets, trust bounda
 - Validate uploaded file types, file names, and file sizes before deploying publicly.
 - Use HTTPS in production so authentication cookies and credentials are protected in transit.
 - Review authorisation checks on every route that reads, edits, or deletes user data.
+- Logins are Firebase session cookies: `HttpOnly`, `SameSite=Lax`, `Secure` over HTTPS, valid for one day, checked for revocation on every request, and revoked at logout.
+- Firebase stores and checks all passwords. The application database holds no password data.
 - Use a separate database for development, such as a Neon branch, and run the demo seed only there.
 
 ## Accounts and roles

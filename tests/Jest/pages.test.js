@@ -3,6 +3,7 @@ import request from 'supertest';
 import app from '../../src/app.js';
 import prisma from '../../prismaClient.js';
 import { SESSION_COOKIE, citizen, logInAs, rejectToken } from './helpers/auth.js';
+import { verifySessionCookie } from './mocks/firebase.js';
 
 describe('public pages', () => {
   it.each(['/', '/sign_in', '/sign_up', '/graph'])('renders %s without login', async (url) => {
@@ -59,5 +60,14 @@ describe('GET /profile', () => {
 
     expect(response.status).toBe(200);
     expect(response.text).toContain(citizen.email);
+  });
+});
+
+describe('static files', () => {
+  it('are served without checking the session', async () => {
+    const response = await request(app).get('/style.css').set('Cookie', SESSION_COOKIE);
+
+    expect(response.status).toBe(200);
+    expect(verifySessionCookie).not.toHaveBeenCalled();
   });
 });

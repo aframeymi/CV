@@ -21,7 +21,6 @@ model User {
   lastName     String   @map("last_name")
   phone        String
   email        String   @unique
-  passwordHash String?  @map("password_hash")
   firebaseUid  String?  @unique @map("firebase_uid")
   roleId       String   @map("role_id")
   reports      Report[]
