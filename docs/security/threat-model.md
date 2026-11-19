@@ -118,20 +118,21 @@ A1 is personal data under the GDPR, so a leak is a legal issue as well as a tech
 
 ## 5. Entry points
 
-This table shows the protection each route has **today**. It is the checklist for the authorization work.
+This table shows the protection each route has **today**. "Verified login" means a valid session for a Firebase account whose email address is verified. The profile is matched by Firebase ID, and created on first use.
 
 | Route | Login required | Permission check | Notes |
 |---|---|---|---|
 | `GET /`, `/sign_in`, `/sign_up`, `/graph` | No | Not needed | Public pages |
+| `GET /api/stats` | No | Not needed | Totals only, no personal data |
 | `GET /report` | No | Not needed | Form only, submission requires login |
 | `GET /track` | No | Not needed | Lists every report, with no paging |
-| `GET /profile` | Yes | Not needed | Shows static content |
-| `POST /submit-report` | Yes | Not needed | Accepts a file upload |
-| `POST /track/:id/delete` | Yes | Author or admin | The one correctly protected change |
-| `GET /track/:id/edit` | **No** | **None** | See T-20 |
-| `POST /track/:id/edit` | **No** | **None** | See T-20 |
-| `GET /admin/report-stats` | **No** | **None** | See T-21 |
-| `GET /admin/analytics` | **No** | **None** | Returns names and emails, see T-21 |
+| `GET /profile` | Verified login | Not needed | Shows static content |
+| `POST /submit-report` | Verified login | Not needed | Accepts a file upload |
+| `GET /track/:id/edit` | Verified login | Author or admin | Fixed in Step 2 (T-20) |
+| `POST /track/:id/edit` | Verified login | Author or admin | Fixed in Step 2 (T-20) |
+| `POST /track/:id/delete` | Verified login | Author or admin | Shares the edit check |
+| `GET /admin/report-stats` | Verified login | Admin only | Fixed in Step 2 (T-21) |
+| `GET /admin/analytics` | Verified login | Admin only | Returns names and emails, so admin only (T-21) |
 | `POST /api/upload` | **No** | **None** | See T-22 |
 | `POST /api/reports` | Yes | Not needed | Cannot succeed: omits a required field |
 | `GET /api/reports` | No | Not needed | Cannot succeed: selects fields that do not exist |
@@ -173,7 +174,7 @@ The application runs entirely on managed cloud services, so there is no server h
 
 | ID | Threat | STRIDE | Assets | Risk | Status | Fix |
 |---|---|---|---|---|---|---|
-| T-09 | Account takeover by email: users are matched by email and `email_verified` is never checked, so registering a seeded address in Firebase gives that user's role, including admin. Confirmed on 2026-11-19: the shared database held a seeded admin with no Firebase account. The seed no longer creates admins ([`demo-data.js`](../../prisma/seeds/demo-data.js)), but the existing row stays until production is cleaned. [`src/app.js`](../../src/app.js) | S, E | A1, A4, A8 | High | Open | Step 2 |
+| T-09 | Account takeover by email: users are matched by email and `email_verified` is never checked, so registering a seeded address in Firebase gives that user's role, including admin. Confirmed on 2026-11-19: the shared database held a seeded admin with no Firebase account. **Fixed:** profiles are matched by Firebase ID (now unique), a verified email is required, and an email clash with an existing profile is refused rather than linked. The seed no longer creates admins. [`user-profile-service.js`](../../src/services/user-profile-service.js), [`middleware/index.js`](../../src/middleware/index.js), tested in [`user-profile-service.test.js`](../../tests/Jest/user-profile-service.test.js) | S, E | A1, A4, A8 | High | Mitigated | Step 2 |
 | T-10 | One shared Firebase client on the server means simultaneous requests can act on the wrong user, and logout signs out that shared client. [`firebase-auth-controller.js`](../../src/controllers/firebase-auth-controller.js) | S, T | A3 | High | Open | Step 3 |
 | T-11 | Password guessing and credential stuffing, because login has no rate limit | S | A2, A3 | High | Open | Step 6 |
 | T-12 | A stolen token stays valid after logout, because logout only clears the browser cookie and nothing is revoked | S | A3 | Medium | Open | Step 3 |
@@ -186,8 +187,8 @@ The application runs entirely on managed cloud services, so there is no server h
 
 | ID | Threat | STRIDE | Assets | Risk | Status | Fix |
 |---|---|---|---|---|---|---|
-| T-20 | Any visitor can read the edit form and change any report without logging in (insecure direct object reference). [`src/app.js`](../../src/app.js) | T, E | A4 | Critical | Open | Step 2 |
-| T-21 | Any visitor can call the `/admin/*` routes, and `/admin/analytics` exposes the names and emails of top reporters. [`src/app.js`](../../src/app.js) | I, E | A1 | Critical | Open | Step 2 |
+| T-20 | Any visitor could read the edit form and change any report without logging in (insecure direct object reference). **Fixed:** edit, save, and delete share one check that allows only the author or an admin. [`report-policy.js`](../../src/policies/report-policy.js), [`report-access.js`](../../src/middleware/report-access.js), tested in [`reports.test.js`](../../tests/Jest/reports.test.js) | T, E | A4 | Critical | Mitigated | Step 2 |
+| T-21 | Any visitor could call the `/admin/*` routes, and `/admin/analytics` exposed the names and emails of top reporters. **Fixed:** both routes require a verified admin, and the public graph page reads `/api/stats`, which holds no personal data. [`report-statistics.js`](../../src/services/report-statistics.js), tested in [`admin-routes.test.js`](../../tests/Jest/admin-routes.test.js) and [`statistics.test.js`](../../tests/Jest/statistics.test.js) | I, E | A1 | Critical | Mitigated | Step 2 |
 
 **File uploads**
 
@@ -236,14 +237,14 @@ The application runs entirely on managed cloud services, so there is no server h
 
 ## 7. STRIDE coverage
 
-Every STRIDE category is represented at the application boundary (B1), and the highest risk in each category is shown here.
+Every STRIDE category is represented at the application boundary (B1). This table shows the highest risk in each category that is still open.
 
-| Category | Worst current example | Risk |
+| Category | Worst open example | Risk |
 |---|---|---|
-| Spoofing | T-09 account takeover by email | High |
-| Tampering | T-20 anyone can edit any report | Critical |
+| Spoofing | T-10 shared Firebase client on the server | High |
+| Tampering | T-22 stored XSS through file upload | Critical |
 | Repudiation | T-34 no audit record | Medium |
-| Information disclosure | T-21 emails exposed by admin routes | Critical |
+| Information disclosure | T-31 no security headers | High |
 | Denial of service | T-23 disk exhaustion through uploads | High |
 | Elevation of privilege | T-22 stored XSS through file upload | Critical |
 
