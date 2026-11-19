@@ -7,16 +7,6 @@ function rememberToken(req, res, token) {
   res.locals.user = token;
 }
 
-// Lets any logged-in user through. Used only by the old /api/reports route.
-const verifyToken = async (req, res, next) => {
-  const token = await readSession(req);
-  if (!token) {
-    return res.status(401).json({ error: 'Please log in.' });
-  }
-  rememberToken(req, res, token);
-  return next();
-};
-
 // Lets through a logged-in user with a verified email, and loads their profile into req.currentUser
 const requireVerifiedUser = async (req, res, next) => {
   const token = await readSession(req);
@@ -58,7 +48,6 @@ const attachUserIfPresent = async (req, res, next) => {
 };
 
 export default {
-  verifyToken,
   requireVerifiedUser,
   requireAdmin,
   attachUserIfPresent,

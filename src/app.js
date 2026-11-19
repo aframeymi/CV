@@ -4,8 +4,6 @@ import prisma from '../prismaClient.js';
 import cookieParser from 'cookie-parser';
 import router from './routes/index.js';
 import middleware from './middleware/index.js';
-import reportsRouter from './routes/reports.js';
-import uploadRouter from './routes/upload.js';
 import { upload } from './routes/upload.js';
 import { loadReportForModification } from './middleware/report-access.js';
 import { findTopReporters, getPublicReportStatistics } from './services/report-statistics.js';
@@ -23,8 +21,6 @@ app.use(cookieParser());
 app.use(middleware.attachUserIfPresent);
 app.set('view engine', 'ejs');
 app.set('views', path.join(process.cwd(), 'views'));
-app.use(reportsRouter);
-app.use(uploadRouter);
 app.use(router);
 
 // Page Routes

@@ -1,10 +1,7 @@
-// Express router, multer (file upload handling), and path helper
-import { Router } from 'express';
+// Multer handles the image field of the report form
 import multer from 'multer';
 import path from 'path';
 
-// Router for the image upload endpoint
-const uploadRouter = Router();
 // Save uploaded files to disk in public/uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.join(process.cwd(), 'public', 'uploads')),
@@ -12,11 +9,4 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// POST /api/upload: upload one image (form field 'image') and return its URL
-uploadRouter.post('/api/upload', upload.single('image'), (req, res) => {
-  const imageUrl = `/uploads/${req.file.filename}`; 
-  res.json({ imageUrl });
-});
-
-export { upload }; 
-export default uploadRouter;
+export { upload };
