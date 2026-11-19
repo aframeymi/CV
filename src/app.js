@@ -4,7 +4,8 @@ import prisma from '../prismaClient.js';
 import cookieParser from 'cookie-parser';
 import router from './routes/index.js';
 import middleware from './middleware/index.js';
-import { upload } from './routes/upload.js';
+import { receiveImage } from './middleware/image-upload.js';
+import { deleteImage, saveImage, UnsupportedImageError } from './services/image-storage.js';
 import { loadReportForModification } from './middleware/report-access.js';
 import { findTopReporters, getPublicReportStatistics } from './services/report-statistics.js';
 
@@ -15,8 +16,9 @@ app.set('trust proxy', 1);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// Static files never need the session, so serve them before it is checked
-app.use(express.static('public'));
+// Static files never need the session, so serve them before it is checked.
+// nosniff stops browsers from treating an uploaded file as anything other than its declared type.
+app.use(express.static('public', { setHeaders: (res) => res.setHeader('X-Content-Type-Options', 'nosniff') }));
 app.use(cookieParser());
 app.use(middleware.attachUserIfPresent);
 app.set('view engine', 'ejs');
@@ -58,74 +60,50 @@ app.get('/report', async (req, res) => {
   }
 });
 
-// New Report Submission
-app.post(
-  '/submit-report',
-  middleware.requireVerifiedUser,
-  upload.single('image'),
-  async (req, res) => {
-    try {
-      const { title, description, neighborhoodId } = req.body;
-      const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
-
-      // Validate requiered fields
-      if (!title || !description || !neighborhoodId) {
-        return res.status(422).send('title, description, and neighborhoodId are required.');
-      }
-
-      const user = req.currentUser;
-
-      // See if selected neighbourhood exists
-      const nbh = await prisma.neighborhood.findUnique({ where: { id: neighborhoodId } });
-      if (!nbh) {
-        return res.status(422).send('Invalid neighborhoodId.');
-      }
-
-      // Save the report, status history, and attachment
-      await prisma.$transaction(async (tx) => {
-        // Create report
-        const created = await tx.report.create({
-          data: {
-            title,
-            description,
-            imageUrl,
-            status: 'OPEN',
-            authorId: user.id,
-            neighborhoodId,
-          },
-        });
-
-        // Initial status 
-        await tx.statusChange.create({
-          data: {
-            reportId: created.id,
-            from: 'OPEN',
-            to: 'OPEN',
-            changedBy: user.email || null,
-          },
-        });
-
-        // Save image status (if uploaded)
-        if (imageUrl) {
-          await tx.attachment.create({
-            data: {
-              reportId: created.id,
-              url: imageUrl,
-              mimeType: req.file?.mimetype || 'image/jpeg',
-              sizeBytes: req.file?.size || null,
-            },
-          });
-        }
-      });
-
-      // Send user to the lists of reports
-      return res.redirect('/track');
-    } catch (error) {
-      console.error('Error submitting report:', error);
-      return res.status(500).send('There was a problem submitting your report.');
-    }
+// New Report Submission. The image is saved only once the rest of the form is valid.
+app.post('/submit-report', middleware.requireVerifiedUser, receiveImage, async (req, res) => {
+  const { title, description, neighborhoodId } = req.body;
+  if (!title || !description || !neighborhoodId) {
+    return res.status(422).send('title, description, and neighborhoodId are required.');
   }
-);
+
+  let image = null;
+  try {
+    const neighborhood = await prisma.neighborhood.findUnique({ where: { id: neighborhoodId } });
+    if (!neighborhood) {
+      return res.status(422).send('Invalid neighborhoodId.');
+    }
+    image = req.file ? await saveImage(req.file) : null;
+    await createReportWithHistory({ title, description, neighborhoodId, author: req.currentUser, image });
+    return res.redirect('/track');
+  } catch (error) {
+    if (error instanceof UnsupportedImageError) {
+      return res.status(415).send(error.message);
+    }
+    console.error('Error submitting report:', error);
+    if (image) {
+      await deleteImage(image).catch((cleanupError) => console.error('Could not remove image:', cleanupError.message));
+    }
+    return res.status(500).send('There was a problem submitting your report.');
+  }
+});
+
+// Saves the report, its first status entry, and its image attachment together, or none of them
+function createReportWithHistory({ title, description, neighborhoodId, author, image }) {
+  return prisma.$transaction(async (tx) => {
+    const report = await tx.report.create({
+      data: { title, description, imageUrl: image?.url ?? null, status: 'OPEN', authorId: author.id, neighborhoodId },
+    });
+    await tx.statusChange.create({
+      data: { reportId: report.id, from: 'OPEN', to: 'OPEN', changedBy: author.email || null },
+    });
+    if (image) {
+      await tx.attachment.create({
+        data: { reportId: report.id, url: image.url, mimeType: image.mimeType, sizeBytes: image.sizeBytes },
+      });
+    }
+  });
+}
 
 // List all reports with author & location
 app.get('/track', async (req, res) => {
