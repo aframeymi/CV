@@ -66,11 +66,6 @@ Copy `.env.example` to `.env` in the project root and fill in your values. Do no
 ```env
 DATABASE_URL="postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require"
 FIREBASE_API_KEY="your-firebase-api-key"
-FIREBASE_AUTH_DOMAIN="your-project.firebaseapp.com"
-FIREBASE_PROJECT_ID="your-project-id"
-FIREBASE_STORAGE_BUCKET="your-project.firebasestorage.app"
-FIREBASE_MESSAGING_SENDER_ID="your-sender-id"
-FIREBASE_APP_ID="your-app-id"
 FIREBASE_SERVICE_ACCOUNT=
 PORT=5000
 ```

@@ -8,9 +8,3 @@ export const admin = {
   auth: () => ({ verifySessionCookie, createSessionCookie, revokeRefreshTokens, updateUser }),
 };
 export const firebaseApiKey = 'test-api-key';
-
-export const auth = {};
-export const createUserWithEmailAndPassword = jest.fn();
-export const signOut = jest.fn();
-export const sendEmailVerification = jest.fn();
-export const sendPasswordResetEmail = jest.fn();
