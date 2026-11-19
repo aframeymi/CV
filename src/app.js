@@ -14,9 +14,10 @@ const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
-app.use(middleware.attachUserIfPresent); 
+// Static files never need the session, so serve them before it is checked
 app.use(express.static('public'));
+app.use(cookieParser());
+app.use(middleware.attachUserIfPresent);
 app.set('view engine', 'ejs');
 app.set('views', path.join(process.cwd(), 'views'));
 app.use(reportsRouter);
