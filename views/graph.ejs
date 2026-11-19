@@ -32,7 +32,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
   // Load the statistics from the server, then draw both charts
-  fetch('/admin/analytics')
+  fetch('/api/stats')
     .then((res) => {
       if (!res.ok) throw new Error('Request failed');
       return res.json();
@@ -43,7 +43,7 @@
         type: 'pie',
         data: {
           labels: data.countsByStatus.map((s) => s.status),
-          datasets: [{ data: data.countsByStatus.map((s) => s._count._all) }],
+          datasets: [{ data: data.countsByStatus.map((s) => s.count) }],
         },
         options: { responsive: false },
       });

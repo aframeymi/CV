@@ -8,6 +8,7 @@ import reportsRouter from './routes/reports.js';
 import uploadRouter from './routes/upload.js';
 import { upload } from './routes/upload.js';
 import { loadReportForModification } from './middleware/report-access.js';
+import { findTopReporters, getPublicReportStatistics } from './services/report-statistics.js';
 
 const app = express();
 
@@ -197,55 +198,27 @@ app.get('/admin/report-stats', async (req, res) => {
   }
 });
 
-// Admin: summary stats (status counts, top reporters, busiest neighborhoods)
+// Admin: the public totals plus the top reporters, who are identified by name and email
 app.get('/admin/analytics', async (req, res) => {
   try {
-    const countsByStatus = await prisma.report.groupBy({
-      by: ['status'],
-      _count: { _all: true },
-      orderBy: { status: 'asc' },
-    });
-
-    const topReporters = await prisma.user.findMany({
-      select: {
-        firstName: true,
-        lastName: true,
-        email: true,
-        _count: { select: { reports: true } },
-      },
-      orderBy: { reports: { _count: 'desc' } },
-      take: 5,
-    });
-
-    const busiestNeighborhoods = await prisma.report.groupBy({
-      by: ['neighborhoodId'],
-      _count: { neighborhoodId: true },                 
-      orderBy: { _count: { neighborhoodId: 'desc' } },  
-      take: 5,
-    });
-
-    const busiestWithNames = await Promise.all(
-      busiestNeighborhoods.map(async (r) => {
-        const n = await prisma.neighborhood.findUnique({
-          where: { id: r.neighborhoodId },
-          include: { city: true },
-        });
-        return {
-          neighborhood: n?.name ?? '(unknown)',
-          city: n?.city?.name ?? '(unknown)',
-          count: r._count.neighborhoodId, 
-        };
-      })
-    );
-
-    res.json({
-      countsByStatus,
-      topReporters,
-      busiestNeighborhoods: busiestWithNames,
-    });
+    const [publicStatistics, topReporters] = await Promise.all([
+      getPublicReportStatistics(),
+      findTopReporters(),
+    ]);
+    res.json({ ...publicStatistics, topReporters });
   } catch (e) {
     console.error('analytics error:', e);
     res.status(500).send('Could not fetch analytics');
+  }
+});
+
+// Public: report totals for the graph page, without any personal data
+app.get('/api/stats', async (req, res) => {
+  try {
+    res.json(await getPublicReportStatistics());
+  } catch (e) {
+    console.error('stats error:', e);
+    res.status(500).json({ error: 'Could not fetch statistics' });
   }
 });
 
