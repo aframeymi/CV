@@ -41,6 +41,9 @@ if (!admin.apps.length) {
 // Shared Firebase Auth instance
 const auth = getAuth();
 
+// Web API key used by the Firebase Auth REST API
+const firebaseApiKey = process.env.FIREBASE_API_KEY;
+
 // Export auth helpers and the Admin SDK for use in controllers and middleware
 export {
   auth,
@@ -51,4 +54,5 @@ export {
   sendEmailVerification,
   sendPasswordResetEmail,
   admin,
+  firebaseApiKey,
 };
