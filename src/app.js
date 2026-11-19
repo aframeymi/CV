@@ -177,8 +177,11 @@ app.post('/track/:id/delete', modifiableReport, async (req, res) => {
 });
 
 
+// Every /admin route requires a logged-in, verified administrator
+const adminOnly = [middleware.requireVerifiedUser, middleware.requireAdmin];
+
 // Admin: Count reports per city and status using a raw SQL query
-app.get('/admin/report-stats', async (req, res) => {
+app.get('/admin/report-stats', adminOnly, async (req, res) => {
   try {
     const rows = await prisma.$queryRawUnsafe(`
       SELECT
@@ -199,7 +202,7 @@ app.get('/admin/report-stats', async (req, res) => {
 });
 
 // Admin: the public totals plus the top reporters, who are identified by name and email
-app.get('/admin/analytics', async (req, res) => {
+app.get('/admin/analytics', adminOnly, async (req, res) => {
   try {
     const [publicStatistics, topReporters] = await Promise.all([
       getPublicReportStatistics(),
