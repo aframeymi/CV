@@ -7,6 +7,7 @@ import middleware from './middleware/index.js';
 import reportsRouter from './routes/reports.js';
 import uploadRouter from './routes/upload.js';
 import { upload } from './routes/upload.js';
+import { canModifyReport } from './policies/report-policy.js';
 
 const app = express();
 
@@ -38,7 +39,7 @@ app.get('/graph', (req, res) => {
   res.render('graph', { title: 'Graph' });
 });
 
-app.get('/profile', middleware.verifyToken, (req, res) => {
+app.get('/profile', middleware.requireVerifiedUser, (req, res) => {
   res.render('profile', { title: 'Profile' });
 });
 
@@ -59,8 +60,8 @@ app.get('/report', async (req, res) => {
 // New Report Submission
 app.post(
   '/submit-report',
-  middleware.verifyToken,
-  upload.single('image'), 
+  middleware.requireVerifiedUser,
+  upload.single('image'),
   async (req, res) => {
     try {
       const { title, description, neighborhoodId } = req.body;
@@ -71,12 +72,7 @@ app.post(
         return res.status(422).send('title, description, and neighborhoodId are required.');
       }
 
-      // Find the user submiting report
-      const email = req.user?.email;
-      const user = await prisma.user.findUnique({ where: { email } });
-      if (!user) {
-        return res.status(403).send('User profile not found.');
-      }
+      const user = req.currentUser;
 
       // See if selected neighbourhood exists
       const nbh = await prisma.neighborhood.findUnique({ where: { id: neighborhoodId } });
@@ -180,27 +176,13 @@ app.post('/track/:id/edit', async (req, res) => {
 });
 
 // Delete a report (by author or admin)
-app.post('/track/:id/delete', middleware.verifyToken, async (req, res) => {
+app.post('/track/:id/delete', middleware.requireVerifiedUser, async (req, res) => {
   try {
     const reportId = req.params.id;
-    const email = req.user?.email;
-
-    const user = await prisma.user.findUnique({
-      where: { email },
-      include: { role: true },
-    });
-    if (!user) return res.status(403).send('User not found');
-
-    const report = await prisma.report.findUnique({
-      where: { id: reportId },
-      include: { author: true },
-    });
+    const report = await prisma.report.findUnique({ where: { id: reportId } });
     if (!report) return res.status(404).send('Report not found');
 
-    // Check if the user is admin or reporter's author
-    const isAdmin = user.role?.title === 'Admin';
-    const isAuthor = report.authorId === user.id;
-    if (!isAdmin && !isAuthor) {
+    if (!canModifyReport(req.currentUser, report)) {
       return res.status(403).send('You can only delete your own reports.');
     }
     await prisma.report.delete({ where: { id: reportId } });

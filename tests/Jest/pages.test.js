@@ -2,7 +2,7 @@
 import request from 'supertest';
 import app from '../../src/app.js';
 import prisma from '../../prismaClient.js';
-import { SESSION_COOKIE, logInAs, rejectToken } from './helpers/auth.js';
+import { SESSION_COOKIE, citizen, logInAs, rejectToken } from './helpers/auth.js';
 
 describe('public pages', () => {
   it.each(['/', '/sign_in', '/sign_up', '/graph'])('renders %s without login', async (url) => {
@@ -29,27 +29,35 @@ describe('public pages', () => {
 });
 
 describe('GET /profile', () => {
-  it('rejects a visitor with no cookie', async () => {
+  it('asks a visitor with no cookie to log in', async () => {
     const response = await request(app).get('/profile');
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(401);
   });
 
-  it('rejects an invalid token', async () => {
+  it('asks a visitor with an invalid token to log in', async () => {
     rejectToken();
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const response = await request(app).get('/profile').set('Cookie', SESSION_COOKIE);
+
+    expect(response.status).toBe(401);
+  });
+
+  it('refuses a user whose email is not verified', async () => {
+    logInAs(citizen, { emailVerified: false });
 
     const response = await request(app).get('/profile').set('Cookie', SESSION_COOKIE);
 
     expect(response.status).toBe(403);
+    expect(response.body.error).toMatch(/verify your email/);
   });
 
-  it('shows the page to a logged-in user', async () => {
-    logInAs('bob@example.com');
+  it('shows the page to a logged-in, verified user', async () => {
+    logInAs(citizen);
 
     const response = await request(app).get('/profile').set('Cookie', SESSION_COOKIE);
 
     expect(response.status).toBe(200);
-    expect(response.text).toContain('bob@example.com');
+    expect(response.text).toContain(citizen.email);
   });
 });
