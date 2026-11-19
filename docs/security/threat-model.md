@@ -127,15 +127,12 @@ This table shows the protection each route has **today**. "Verified login" means
 | `GET /report` | No | Not needed | Form only, submission requires login |
 | `GET /track` | No | Not needed | Lists every report, with no paging |
 | `GET /profile` | Verified login | Not needed | Shows static content |
-| `POST /submit-report` | Verified login | Not needed | Accepts a file upload |
+| `POST /submit-report` | Verified login | Not needed | One JPEG, PNG, or WebP image of at most 5 MB, checked by content |
 | `GET /track/:id/edit` | Verified login | Author or admin | Fixed in Step 2 (T-20) |
 | `POST /track/:id/edit` | Verified login | Author or admin | Fixed in Step 2 (T-20) |
 | `POST /track/:id/delete` | Verified login | Author or admin | Shares the edit check |
 | `GET /admin/report-stats` | Verified login | Admin only | Fixed in Step 2 (T-21) |
 | `GET /admin/analytics` | Verified login | Admin only | Returns names and emails, so admin only (T-21) |
-| `POST /api/upload` | **No** | **None** | See T-22 |
-| `POST /api/reports` | Yes | Not needed | Cannot succeed: omits a required field |
-| `GET /api/reports` | No | Not needed | Cannot succeed: selects fields that do not exist |
 | `POST /api/register` | No | Not needed | Stateless Firebase call, verification email sent. No rate limit yet |
 | `POST /api/login` | No | Not needed | Generic error message. No rate limit yet |
 | `POST /api/logout` | No | Not needed | Revokes the session at Firebase |
@@ -194,9 +191,9 @@ The application runs entirely on managed cloud services, so there is no server h
 
 | ID | Threat | STRIDE | Assets | Risk | Status | Fix |
 |---|---|---|---|---|---|---|
-| T-22 | Stored XSS: `/api/upload` needs no login and accepts any file. An uploaded `.html` or `.svg` file is served from the application domain and runs as the victim. [`upload.js`](../../src/routes/upload.js) | T, E | A3, A4, A5 | Critical | Open | Step 4 |
-| T-23 | Disk exhaustion, because uploads have no size limit | D | A9 | High | Open | Step 4 |
-| T-24 | The stored file name keeps the user-supplied name, and neither type nor content is checked | T | A5 | Medium | Open | Step 4 |
+| T-22 | Stored XSS: `/api/upload` needed no login and accepted any file, so an uploaded `.html` or `.svg` file was served from the application domain and ran as the victim. **Fixed:** the route is removed. The report form accepts only JPEG, PNG, and WebP, detected from the file content, and static files are served with `X-Content-Type-Options: nosniff`. [`image-storage.js`](../../src/services/image-storage.js), tested in [`uploads.test.js`](../../tests/Jest/uploads.test.js) | T, E | A3, A4, A5 | Critical | Mitigated | Step 4 |
+| T-23 | Disk exhaustion through uploads. **Fixed:** one image of at most 5 MB per report, held in memory and written only after the whole form is valid. Rate limits in Step 6 will cap how many reports one client can send. [`image-upload.js`](../../src/middleware/image-upload.js) | D | A9 | High | Mitigated | Step 4 |
+| T-24 | The stored file name kept the user-supplied name, and neither type nor content was checked. **Fixed:** files are saved under a random UUID with an extension chosen from the detected type, and removed again if saving the report fails | T | A5 | Medium | Mitigated | Step 4 |
 
 **Input and output handling**
 
@@ -242,11 +239,11 @@ Every STRIDE category is represented at the application boundary (B1). This tabl
 | Category | Worst open example | Risk |
 |---|---|---|
 | Spoofing | T-11 password guessing, no rate limit | High |
-| Tampering | T-22 stored XSS through file upload | Critical |
+| Tampering | T-31 no security headers | High |
 | Repudiation | T-34 no audit record | Medium |
 | Information disclosure | T-31 no security headers | High |
-| Denial of service | T-23 disk exhaustion through uploads | High |
-| Elevation of privilege | T-22 stored XSS through file upload | Critical |
+| Denial of service | T-40 vulnerable dependencies | High |
+| Elevation of privilege | T-40 vulnerable dependencies | High |
 
 ## 8. Accepted risks and shared responsibility
 
