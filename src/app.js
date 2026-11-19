@@ -7,6 +7,8 @@ import middleware from './middleware/index.js';
 import reportsRouter from './routes/reports.js';
 import uploadRouter from './routes/upload.js';
 import { upload } from './routes/upload.js';
+import { loadReportForModification } from './middleware/report-access.js';
+import { findTopReporters, getPublicReportStatistics } from './services/report-statistics.js';
 
 const app = express();
 
@@ -38,7 +40,7 @@ app.get('/graph', (req, res) => {
   res.render('graph', { title: 'Graph' });
 });
 
-app.get('/profile', middleware.verifyToken, (req, res) => {
+app.get('/profile', middleware.requireVerifiedUser, (req, res) => {
   res.render('profile', { title: 'Profile' });
 });
 
@@ -59,8 +61,8 @@ app.get('/report', async (req, res) => {
 // New Report Submission
 app.post(
   '/submit-report',
-  middleware.verifyToken,
-  upload.single('image'), 
+  middleware.requireVerifiedUser,
+  upload.single('image'),
   async (req, res) => {
     try {
       const { title, description, neighborhoodId } = req.body;
@@ -71,12 +73,7 @@ app.post(
         return res.status(422).send('title, description, and neighborhoodId are required.');
       }
 
-      // Find the user submiting report
-      const email = req.user?.email;
-      const user = await prisma.user.findUnique({ where: { email } });
-      if (!user) {
-        return res.status(403).send('User profile not found.');
-      }
+      const user = req.currentUser;
 
       // See if selected neighbourhood exists
       const nbh = await prisma.neighborhood.findUnique({ where: { id: neighborhoodId } });
@@ -148,29 +145,19 @@ app.get('/track', async (req, res) => {
   }
 });
 
-// Show the edit form for one report
-app.get('/track/:id/edit', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const report = await prisma.report.findUnique({ where: { id } });
-    if (!report) return res.status(404).send('Report not found');
+// Only the author or an admin may open the edit form, save changes, or delete a report
+const modifiableReport = [middleware.requireVerifiedUser, loadReportForModification];
 
-    res.render('edit', { title: 'Edit Report', report });
-  } catch (err) {
-    console.error('Error loading edit page:', err);
-    res.status(500).send('Internal Server Error');
-  }
+app.get('/track/:id/edit', modifiableReport, (req, res) => {
+  res.render('edit', { title: 'Edit Report', report: req.report });
 });
 
-// Save edited title and description for one report
-app.post('/track/:id/edit', async (req, res) => {
-  const { id } = req.params;
+app.post('/track/:id/edit', modifiableReport, async (req, res) => {
   const { title, description } = req.body;
   try {
     await prisma.report.update({
-      where: { id },
-      data: { ...({title: title}), 
-      ...({description:description })},
+      where: { id: req.report.id },
+      data: { title, description },
     });
     res.redirect('/track');
   } catch (err) {
@@ -179,31 +166,9 @@ app.post('/track/:id/edit', async (req, res) => {
   }
 });
 
-// Delete a report (by author or admin)
-app.post('/track/:id/delete', middleware.verifyToken, async (req, res) => {
+app.post('/track/:id/delete', modifiableReport, async (req, res) => {
   try {
-    const reportId = req.params.id;
-    const email = req.user?.email;
-
-    const user = await prisma.user.findUnique({
-      where: { email },
-      include: { role: true },
-    });
-    if (!user) return res.status(403).send('User not found');
-
-    const report = await prisma.report.findUnique({
-      where: { id: reportId },
-      include: { author: true },
-    });
-    if (!report) return res.status(404).send('Report not found');
-
-    // Check if the user is admin or reporter's author
-    const isAdmin = user.role?.title === 'Admin';
-    const isAuthor = report.authorId === user.id;
-    if (!isAdmin && !isAuthor) {
-      return res.status(403).send('You can only delete your own reports.');
-    }
-    await prisma.report.delete({ where: { id: reportId } });
+    await prisma.report.delete({ where: { id: req.report.id } });
     res.redirect('/track');
   } catch (err) {
     console.error('Error deleting report:', err);
@@ -212,8 +177,11 @@ app.post('/track/:id/delete', middleware.verifyToken, async (req, res) => {
 });
 
 
+// Every /admin route requires a logged-in, verified administrator
+const adminOnly = [middleware.requireVerifiedUser, middleware.requireAdmin];
+
 // Admin: Count reports per city and status using a raw SQL query
-app.get('/admin/report-stats', async (req, res) => {
+app.get('/admin/report-stats', adminOnly, async (req, res) => {
   try {
     const rows = await prisma.$queryRawUnsafe(`
       SELECT
@@ -233,55 +201,27 @@ app.get('/admin/report-stats', async (req, res) => {
   }
 });
 
-// Admin: summary stats (status counts, top reporters, busiest neighborhoods)
-app.get('/admin/analytics', async (req, res) => {
+// Admin: the public totals plus the top reporters, who are identified by name and email
+app.get('/admin/analytics', adminOnly, async (req, res) => {
   try {
-    const countsByStatus = await prisma.report.groupBy({
-      by: ['status'],
-      _count: { _all: true },
-      orderBy: { status: 'asc' },
-    });
-
-    const topReporters = await prisma.user.findMany({
-      select: {
-        firstName: true,
-        lastName: true,
-        email: true,
-        _count: { select: { reports: true } },
-      },
-      orderBy: { reports: { _count: 'desc' } },
-      take: 5,
-    });
-
-    const busiestNeighborhoods = await prisma.report.groupBy({
-      by: ['neighborhoodId'],
-      _count: { neighborhoodId: true },                 
-      orderBy: { _count: { neighborhoodId: 'desc' } },  
-      take: 5,
-    });
-
-    const busiestWithNames = await Promise.all(
-      busiestNeighborhoods.map(async (r) => {
-        const n = await prisma.neighborhood.findUnique({
-          where: { id: r.neighborhoodId },
-          include: { city: true },
-        });
-        return {
-          neighborhood: n?.name ?? '(unknown)',
-          city: n?.city?.name ?? '(unknown)',
-          count: r._count.neighborhoodId, 
-        };
-      })
-    );
-
-    res.json({
-      countsByStatus,
-      topReporters,
-      busiestNeighborhoods: busiestWithNames,
-    });
+    const [publicStatistics, topReporters] = await Promise.all([
+      getPublicReportStatistics(),
+      findTopReporters(),
+    ]);
+    res.json({ ...publicStatistics, topReporters });
   } catch (e) {
     console.error('analytics error:', e);
     res.status(500).send('Could not fetch analytics');
+  }
+});
+
+// Public: report totals for the graph page, without any personal data
+app.get('/api/stats', async (req, res) => {
+  try {
+    res.json(await getPublicReportStatistics());
+  } catch (e) {
+    console.error('stats error:', e);
+    res.status(500).json({ error: 'Could not fetch statistics' });
   }
 });
 

@@ -1,9 +1,9 @@
 // Fake of prismaClient.js. Tests choose what each query returns.
 const prisma = {
   user: { findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn() },
-  role: { findUnique: jest.fn(), create: jest.fn() },
+  role: { findUnique: jest.fn(), findUniqueOrThrow: jest.fn(), create: jest.fn() },
   city: { findMany: jest.fn() },
-  neighborhood: { findUnique: jest.fn() },
+  neighborhood: { findUnique: jest.fn(), findMany: jest.fn() },
   report: {
     create: jest.fn(),
     findUnique: jest.fn(),

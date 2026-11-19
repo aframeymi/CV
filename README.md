@@ -14,6 +14,7 @@ This README is primarily for developers who want to run, test, or contribute to 
 - [Project structure](#project-structure)
 - [Testing](#testing)
 - [Configuration and security](#configuration-and-security)
+- [Accounts and roles](#accounts-and-roles)
 - [Deployment](#deployment)
 
 ## Features
@@ -143,6 +144,25 @@ The [threat model](docs/security/threat-model.md) lists the assets, trust bounda
 - Use HTTPS in production so authentication cookies and credentials are protected in transit.
 - Review authorisation checks on every route that reads, edits, or deletes user data.
 - Use a separate database for development, such as a Neon branch, and run the demo seed only there.
+
+## Accounts and roles
+
+Every account starts as a **Citizen**. A citizen must verify their email address before they can submit, edit, or delete reports, and can only edit or delete their own. An **Admin** can edit or delete any report and use the `/admin` routes.
+
+The application never grants the admin role itself, and the seed never creates an admin. To make someone an admin:
+
+1. They register, verify their email address, and log in once, which creates their profile.
+2. In the Neon console, open the SQL editor on the correct branch and run, with their address:
+
+   ```sql
+   UPDATE users
+   SET role_id = (SELECT id FROM "Role" WHERE title = 'Admin')
+   WHERE email = 'person@example.org' AND firebase_uid IS NOT NULL;
+   ```
+
+3. Check that the result says `UPDATE 1`. The role is read on every request, so it applies straight away.
+
+To remove the role, run the same statement with `'Citizen'` instead of `'Admin'`.
 
 ## Deployment
 

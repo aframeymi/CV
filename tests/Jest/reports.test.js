@@ -2,11 +2,11 @@
 import request from 'supertest';
 import app from '../../src/app.js';
 import prisma from '../../prismaClient.js';
-import { SESSION_COOKIE, logInAs } from './helpers/auth.js';
+import { SESSION_COOKIE, admin, citizen, logInAs } from './helpers/auth.js';
 
-const citizen = { id: 'user-1', email: 'bob@example.com', role: { title: 'Citizen' } };
-const admin = { id: 'user-2', email: 'alice@example.com', role: { title: 'Admin' } };
 const validForm = { title: 'Broken light', description: 'Out since Monday', neighborhoodId: 'n1' };
+const ownReport = { id: 'report-1', authorId: citizen.id, title: 'Mine', description: 'text' };
+const othersReport = { id: 'report-2', authorId: 'someone-else', title: 'Theirs', description: 'text' };
 
 function submitReport(form) {
   return request(app).post('/submit-report').set('Cookie', SESSION_COOKIE).type('form').send(form);
@@ -18,14 +18,22 @@ function deleteReport(id) {
 
 describe('POST /submit-report', () => {
   beforeEach(() => {
-    logInAs(citizen.email);
-    prisma.user.findUnique.mockResolvedValue(citizen);
+    logInAs(citizen);
     prisma.neighborhood.findUnique.mockResolvedValue({ id: 'n1' });
     prisma.report.create.mockResolvedValue({ id: 'report-1' });
   });
 
-  it('rejects a visitor who is not logged in', async () => {
+  it('asks a visitor who is not logged in to log in', async () => {
     const response = await request(app).post('/submit-report').type('form').send(validForm);
+
+    expect(response.status).toBe(401);
+    expect(prisma.report.create).not.toHaveBeenCalled();
+  });
+
+  it('refuses a user whose email is not verified', async () => {
+    logInAs(citizen, { emailVerified: false });
+
+    const response = await submitReport(validForm);
 
     expect(response.status).toBe(403);
     expect(prisma.report.create).not.toHaveBeenCalled();
@@ -38,12 +46,20 @@ describe('POST /submit-report', () => {
     expect(prisma.report.create).not.toHaveBeenCalled();
   });
 
-  it('rejects a user with no profile in the database', async () => {
+  it('creates a missing profile, then saves the report for it', async () => {
     prisma.user.findUnique.mockResolvedValue(null);
+    prisma.role.findUniqueOrThrow.mockResolvedValue({ id: 'role-citizen', title: 'Citizen' });
+    prisma.user.create.mockResolvedValue(citizen);
 
     const response = await submitReport(validForm);
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(302);
+    expect(prisma.user.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ firebaseUid: citizen.firebaseUid }) })
+    );
+    expect(prisma.report.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ authorId: citizen.id }),
+    });
   });
 
   it('rejects an unknown neighborhood', async () => {
@@ -83,19 +99,15 @@ describe('GET /track', () => {
 });
 
 describe('POST /track/:id/delete', () => {
-  const ownReport = { id: 'report-1', authorId: citizen.id };
-  const othersReport = { id: 'report-2', authorId: 'someone-else' };
-
-  it('rejects a visitor who is not logged in', async () => {
+  it('asks a visitor who is not logged in to log in', async () => {
     const response = await request(app).post('/track/report-1/delete');
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(401);
     expect(prisma.report.delete).not.toHaveBeenCalled();
   });
 
   it('lets the author delete their own report', async () => {
-    logInAs(citizen.email);
-    prisma.user.findUnique.mockResolvedValue(citizen);
+    logInAs(citizen);
     prisma.report.findUnique.mockResolvedValue(ownReport);
 
     const response = await deleteReport(ownReport.id);
@@ -105,8 +117,7 @@ describe('POST /track/:id/delete', () => {
   });
 
   it('lets an admin delete any report', async () => {
-    logInAs(admin.email);
-    prisma.user.findUnique.mockResolvedValue(admin);
+    logInAs(admin);
     prisma.report.findUnique.mockResolvedValue(othersReport);
 
     const response = await deleteReport(othersReport.id);
@@ -116,8 +127,7 @@ describe('POST /track/:id/delete', () => {
   });
 
   it('stops a citizen deleting a report by another user', async () => {
-    logInAs(citizen.email);
-    prisma.user.findUnique.mockResolvedValue(citizen);
+    logInAs(citizen);
     prisma.report.findUnique.mockResolvedValue(othersReport);
 
     const response = await deleteReport(othersReport.id);
@@ -127,12 +137,105 @@ describe('POST /track/:id/delete', () => {
   });
 
   it('returns 404 for a report that does not exist', async () => {
-    logInAs(citizen.email);
-    prisma.user.findUnique.mockResolvedValue(citizen);
+    logInAs(citizen);
     prisma.report.findUnique.mockResolvedValue(null);
 
     const response = await deleteReport('missing');
 
     expect(response.status).toBe(404);
+  });
+});
+
+describe('editing a report', () => {
+  const editForm = { title: 'New title', description: 'New text' };
+
+  function openEditForm(id, { loggedIn = true } = {}) {
+    const call = request(app).get(`/track/${id}/edit`);
+    return loggedIn ? call.set('Cookie', SESSION_COOKIE) : call;
+  }
+
+  function saveEdit(id, { loggedIn = true } = {}) {
+    const call = request(app).post(`/track/${id}/edit`).type('form').send(editForm);
+    return loggedIn ? call.set('Cookie', SESSION_COOKIE) : call;
+  }
+
+  it('asks a visitor who is not logged in to log in before opening the form', async () => {
+    prisma.report.findUnique.mockResolvedValue(ownReport);
+
+    const response = await openEditForm(ownReport.id, { loggedIn: false });
+
+    expect(response.status).toBe(401);
+  });
+
+  it('asks a visitor who is not logged in to log in before saving', async () => {
+    prisma.report.findUnique.mockResolvedValue(ownReport);
+
+    const response = await saveEdit(ownReport.id, { loggedIn: false });
+
+    expect(response.status).toBe(401);
+    expect(prisma.report.update).not.toHaveBeenCalled();
+  });
+
+  it('shows the form to the author', async () => {
+    logInAs(citizen);
+    prisma.report.findUnique.mockResolvedValue(ownReport);
+
+    const response = await openEditForm(ownReport.id);
+
+    expect(response.status).toBe(200);
+    expect(response.text).toContain('Mine');
+  });
+
+  it('saves changes made by the author', async () => {
+    logInAs(citizen);
+    prisma.report.findUnique.mockResolvedValue(ownReport);
+
+    const response = await saveEdit(ownReport.id);
+
+    expect(response.status).toBe(302);
+    expect(prisma.report.update).toHaveBeenCalledWith({
+      where: { id: ownReport.id },
+      data: { title: 'New title', description: 'New text' },
+    });
+  });
+
+  it('lets an admin edit any report', async () => {
+    logInAs(admin);
+    prisma.report.findUnique.mockResolvedValue(othersReport);
+
+    const response = await saveEdit(othersReport.id);
+
+    expect(response.status).toBe(302);
+    expect(prisma.report.update).toHaveBeenCalled();
+  });
+
+  it('hides the form from a citizen who is not the author', async () => {
+    logInAs(citizen);
+    prisma.report.findUnique.mockResolvedValue(othersReport);
+
+    const response = await openEditForm(othersReport.id);
+
+    expect(response.status).toBe(403);
+    expect(response.text).not.toContain('Theirs');
+  });
+
+  it('stops a citizen saving changes to a report by another user', async () => {
+    logInAs(citizen);
+    prisma.report.findUnique.mockResolvedValue(othersReport);
+
+    const response = await saveEdit(othersReport.id);
+
+    expect(response.status).toBe(403);
+    expect(prisma.report.update).not.toHaveBeenCalled();
+  });
+
+  it('returns 404 for a report that does not exist', async () => {
+    logInAs(citizen);
+    prisma.report.findUnique.mockResolvedValue(null);
+
+    const response = await saveEdit('missing');
+
+    expect(response.status).toBe(404);
+    expect(prisma.report.update).not.toHaveBeenCalled();
   });
 });
