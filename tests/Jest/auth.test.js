@@ -2,7 +2,14 @@
 // The Firebase REST client is replaced by fakes; the error class stays real.
 import request from 'supertest';
 import app from '../../src/app.js';
-import { FirebaseIdentityError, signInWithPassword } from '../../src/services/firebase-identity.js';
+import {
+  FirebaseIdentityError,
+  sendVerificationEmail,
+  setDisplayName,
+  signInWithPassword,
+  signUpWithPassword,
+} from '../../src/services/firebase-identity.js';
+import prisma from '../../prismaClient.js';
 import { createSessionCookie, revokeRefreshTokens, verifySessionCookie } from './mocks/firebase.js';
 import { SESSION_COOKIE, citizen, logInAs } from './helpers/auth.js';
 
@@ -150,5 +157,96 @@ describe('POST /api/logout', () => {
     expect(response.status).toBe(302);
     expect(revokeRefreshTokens).not.toHaveBeenCalled();
     expect(sessionCookieFrom(response)).toMatch(/^session=;/);
+  });
+});
+
+describe('POST /api/register', () => {
+  const form = {
+    name: 'Ada',
+    surname: 'Lovelace',
+    phone: '0301234567',
+    email: 'ada@example.org',
+    password: 'analytical engine',
+    confirm_password: 'analytical engine',
+  };
+
+  beforeEach(() => {
+    signUpWithPassword.mockResolvedValue({ idToken: 'new-id-token', uid: 'uid-ada', email: 'ada@example.org' });
+    prisma.user.findUnique.mockResolvedValue(null);
+    prisma.role.findUniqueOrThrow.mockResolvedValue({ id: 'role-citizen', title: 'Citizen' });
+    prisma.user.create.mockImplementation(async ({ data }) => ({ id: 'user-ada', ...data }));
+  });
+
+  it('creates the Firebase account, names it, and sends the verification email', async () => {
+    const response = await postForm('/api/register', form);
+
+    expect(response.status).toBe(201);
+    expect(signUpWithPassword).toHaveBeenCalledWith(form.email, form.password);
+    expect(setDisplayName).toHaveBeenCalledWith('uid-ada', 'Ada Lovelace');
+    expect(sendVerificationEmail).toHaveBeenCalledWith('new-id-token');
+    expect(response.text).toContain('verify');
+  });
+
+  it('creates a citizen profile linked to the new Firebase ID, without any password hash', async () => {
+    await postForm('/api/register', form);
+
+    const { data } = prisma.user.create.mock.calls[0][0];
+    expect(data).toMatchObject({
+      firebaseUid: 'uid-ada',
+      email: 'ada@example.org',
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      phone: '0301234567',
+      roleId: 'role-citizen',
+    });
+    expect(data).not.toHaveProperty('passwordHash');
+    expect(JSON.stringify(data)).not.toContain(form.password);
+  });
+
+  it('does not log the new user in before they verify their email', async () => {
+    const response = await postForm('/api/register', form);
+
+    expect(sessionCookieFrom(response)).toBeUndefined();
+  });
+
+  it('refuses passwords that do not match, before contacting Firebase', async () => {
+    const response = await postForm('/api/register', { ...form, confirm_password: 'something else' });
+
+    expect(response.status).toBe(422);
+    expect(response.text).toContain('Passwords do not match');
+    expect(signUpWithPassword).not.toHaveBeenCalled();
+  });
+
+  it('asks for an email address and password', async () => {
+    const response = await postForm('/api/register', { ...form, email: '' });
+
+    expect(response.status).toBe(422);
+    expect(signUpWithPassword).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['EMAIL_EXISTS', 409, 'already exists'],
+    ['WEAK_PASSWORD', 422, 'at least 6 characters'],
+    ['INVALID_EMAIL', 422, 'valid email address'],
+    ['TOO_MANY_ATTEMPTS_TRY_LATER', 429, 'Too many attempts'],
+  ])('explains %s on the registration page', async (code, status, message) => {
+    signUpWithPassword.mockRejectedValue(new FirebaseIdentityError(code));
+
+    const response = await postForm('/api/register', form);
+
+    expect(response.status).toBe(status);
+    expect(response.text).toContain(message);
+    expect(response.text).not.toContain(code);
+    expect(prisma.user.create).not.toHaveBeenCalled();
+  });
+
+  it('still finishes registering when setting the display name fails', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    setDisplayName.mockRejectedValue(new Error('quota exceeded'));
+
+    const response = await postForm('/api/register', form);
+
+    expect(response.status).toBe(201);
+    expect(sendVerificationEmail).toHaveBeenCalled();
   });
 });
