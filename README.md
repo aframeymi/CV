@@ -138,6 +138,8 @@ The [threat model](docs/security/threat-model.md) lists the assets, trust bounda
 - Validate uploaded file types, file names, and file sizes before deploying publicly.
 - Use HTTPS in production so authentication cookies and credentials are protected in transit.
 - Review authorisation checks on every route that reads, edits, or deletes user data.
+- Logins are Firebase session cookies: `HttpOnly`, `SameSite=Lax`, `Secure` over HTTPS, valid for one day, checked for revocation on every request, and revoked at logout.
+- Firebase stores and checks all passwords. The application database holds no password data.
 - Use a separate database for development, such as a Neon branch, and run the demo seed only there.
 
 ## Accounts and roles
