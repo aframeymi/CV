@@ -31,7 +31,7 @@ Run Community Voice locally and confirm that the application can connect to its 
    npm install
    ```
 
-3. Create a `.env` file in the project root and add the database, Firebase, and port variables described in the README. Never commit this file.
+3. Copy `.env.example` to `.env` in the project root and fill in the database, Firebase, and port variables described in the README. Never commit this file.
 
 4. Generate the Prisma client:
 
@@ -45,10 +45,11 @@ Run Community Voice locally and confirm that the application can connect to its 
    npx prisma migrate deploy
    ```
 
-6. Add development records:
+6. Add the reference data, then the optional demo data. Run the demo seed only against a development database:
 
    ```bash
    npm run prisma:seed
+   npm run prisma:seed:demo
    ```
 
 7. Start the development server:
@@ -188,6 +189,6 @@ A successful test run should report that the configured tests have passed. If th
 
 - If the application cannot start, check the terminal output and verify the entry point in `package.json`.
 - If migrations fail, confirm that `DATABASE_URL` points to the intended development database.
-- If seed data is missing, run `npm run prisma:seed` only against a development database.
+- If cities or neighbourhoods are missing, run `npm run prisma:seed`. If demo reports are missing, run `npm run prisma:seed:demo`, only against a development database.
 - If Firebase authentication fails, check all Firebase environment variables and the service-account JSON.
 - If uploaded images cannot be displayed, confirm that `public/uploads` exists and that the application serves the `public` directory as static content.

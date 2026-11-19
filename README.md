@@ -60,7 +60,7 @@ npm install
 
 ### 2. Configure the environment
 
-Create a `.env` file in the project root. Do not commit this file.
+Copy `.env.example` to `.env` in the project root and fill in your values. Do not commit `.env`.
 
 ```env
 DATABASE_URL="postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require"
@@ -81,8 +81,11 @@ PORT=5000
 ```bash
 npx prisma generate
 npx prisma migrate deploy
-npm run prisma:seed
+npm run prisma:seed        # reference data: roles, cities, neighbourhoods, categories
+npm run prisma:seed:demo   # optional, development database only: example users and 1,000 reports
 ```
+
+The reference seed only adds missing rows, so it is safe on any database. The demo seed refuses to run when `NODE_ENV=production`, replaces only example users (`@example.com`) and their reports, and never creates an admin account.
 
 ### 4. Start the application
 
@@ -132,12 +135,14 @@ See the [procedural instructions](docs/procedural-instructions.md) for testing p
 
 ## Configuration and security
 
+The [threat model](docs/security/threat-model.md) lists the assets, trust boundaries, and known threats, with the current status of each.
+
 - Never commit `.env`, Firebase service-account JSON, database passwords, or private keys.
 - Use a separate Firebase project and database for development where possible.
 - Validate uploaded file types, file names, and file sizes before deploying publicly.
 - Use HTTPS in production so authentication cookies and credentials are protected in transit.
 - Review authorisation checks on every route that reads, edits, or deletes user data.
-- Replace development seed passwords before using the database outside local development.
+- Use a separate database for development, such as a Neon branch, and run the demo seed only there.
 
 ## Deployment
 

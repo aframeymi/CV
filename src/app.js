@@ -1,6 +1,5 @@
 import express from 'express';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import prisma from '../prismaClient.js';
 import cookieParser from 'cookie-parser';
 import router from './routes/index.js';
@@ -8,9 +7,6 @@ import middleware from './middleware/index.js';
 import reportsRouter from './routes/reports.js';
 import uploadRouter from './routes/upload.js';
 import { upload } from './routes/upload.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -20,7 +16,7 @@ app.use(cookieParser());
 app.use(middleware.attachUserIfPresent); 
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, '..', 'views'));
+app.set('views', path.join(process.cwd(), 'views'));
 app.use(reportsRouter);
 app.use(uploadRouter);
 app.use(router);
@@ -287,12 +283,6 @@ app.get('/admin/analytics', async (req, res) => {
     console.error('analytics error:', e);
     res.status(500).send('Could not fetch analytics');
   }
-});
-
-// Start Server
-const port = process.env.PORT || 5000;
-app.listen(port, () => {
-  console.log(`Server started on http://localhost:${port}`);
 });
 
 export default app;
