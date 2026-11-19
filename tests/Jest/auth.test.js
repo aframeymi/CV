@@ -4,6 +4,7 @@ import request from 'supertest';
 import app from '../../src/app.js';
 import {
   FirebaseIdentityError,
+  sendPasswordResetEmail,
   sendVerificationEmail,
   setDisplayName,
   signInWithPassword,
@@ -248,5 +249,52 @@ describe('POST /api/register', () => {
 
     expect(response.status).toBe(201);
     expect(sendVerificationEmail).toHaveBeenCalled();
+  });
+});
+
+describe('POST /api/reset-password', () => {
+  const RESET_NOTICE = 'If an account exists for this address, we sent it a link to reset the password.';
+
+  it('asks Firebase to send the reset email and shows a neutral notice', async () => {
+    sendPasswordResetEmail.mockResolvedValue(undefined);
+
+    const response = await postForm('/api/reset-password', { email: 'bob@example.com' });
+
+    expect(response.status).toBe(200);
+    expect(sendPasswordResetEmail).toHaveBeenCalledWith('bob@example.com');
+    expect(response.text).toContain(RESET_NOTICE);
+  });
+
+  it('shows exactly the same notice for an address with no account', async () => {
+    sendPasswordResetEmail.mockRejectedValue(new FirebaseIdentityError('EMAIL_NOT_FOUND'));
+
+    const response = await postForm('/api/reset-password', { email: 'nobody@example.com' });
+
+    expect(response.status).toBe(200);
+    expect(response.text).toContain(RESET_NOTICE);
+    expect(response.text).not.toContain('EMAIL_NOT_FOUND');
+  });
+
+  it('asks the user to wait when Firebase reports too many attempts', async () => {
+    sendPasswordResetEmail.mockRejectedValue(new FirebaseIdentityError('TOO_MANY_ATTEMPTS_TRY_LATER'));
+
+    const response = await postForm('/api/reset-password', { email: 'bob@example.com' });
+
+    expect(response.status).toBe(429);
+  });
+
+  it('asks for an email address', async () => {
+    const response = await postForm('/api/reset-password', {});
+
+    expect(response.status).toBe(422);
+    expect(sendPasswordResetEmail).not.toHaveBeenCalled();
+  });
+});
+
+describe('GET /sign_in', () => {
+  it('offers a form to reset a forgotten password', async () => {
+    const response = await request(app).get('/sign_in');
+
+    expect(response.text).toContain('action="/api/reset-password"');
   });
 });

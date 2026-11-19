@@ -1,5 +1,6 @@
 import {
   FirebaseIdentityError,
+  sendPasswordResetEmail,
   sendVerificationEmail,
   setDisplayName,
   signInWithPassword,
@@ -12,6 +13,8 @@ import { findOrCreateProfile, ProfileConflictError } from '../services/user-prof
 const LOGIN_FAILED = 'Incorrect email or password.';
 const TOO_MANY_ATTEMPTS = 'Too many attempts. Please wait a few minutes and try again.';
 const REGISTERED = 'Account created. We sent you an email: please verify your address, then sign in.';
+const PASSWORD_RESET_REQUESTED =
+  'If an account exists for this address, we sent it a link to reset the password.';
 
 const LOGIN_FAILURES = {
   INVALID_LOGIN_CREDENTIALS: { status: 401, message: LOGIN_FAILED },
@@ -82,6 +85,25 @@ export async function register(req, res, next) {
     }
     return next(error);
   }
+}
+
+// The notice is the same whether or not an account exists, so the form does not reveal registered addresses
+export async function requestPasswordReset(req, res, next) {
+  const { email } = req.body;
+  if (!email) {
+    return renderSignIn(res, 422, { error: 'Please enter your email address.' });
+  }
+  try {
+    await sendPasswordResetEmail(email);
+  } catch (error) {
+    if (!(error instanceof FirebaseIdentityError)) {
+      return next(error);
+    }
+    if (error.code === 'TOO_MANY_ATTEMPTS_TRY_LATER') {
+      return renderSignIn(res, 429, { error: TOO_MANY_ATTEMPTS });
+    }
+  }
+  return renderSignIn(res, 200, { notice: PASSWORD_RESET_REQUESTED });
 }
 
 // The name is only for display, so a failure here must not stop the registration

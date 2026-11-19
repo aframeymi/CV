@@ -29,6 +29,15 @@
             <input type="submit" value="Sign in" />
         </form>
 
+        <%# Password reset: Firebase emails a reset link if the address has an account %>
+        <details>
+            <summary>Forgot your password?</summary>
+            <form method="POST" action="/api/reset-password">
+                <input type="email" name="email" placeholder="Email" required />
+                <input type="submit" value="Send reset link" />
+            </form>
+        </details>
+
         <%# Link to the registration page %>
         <p>New in here? <a href="/sign_up">SIGN UP</a></p>
     </div>
