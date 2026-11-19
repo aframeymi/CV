@@ -25,6 +25,16 @@ export async function readSession(req) {
   }
 }
 
+// Revokes every session of the user at Firebase, so a copied cookie stops working, then deletes the cookie.
+// Clearing the cookie alone would leave a stolen copy valid until it expires.
+export async function endSession(req, res) {
+  const session = await readSession(req);
+  res.clearCookie(SESSION_COOKIE, cookieOptions(req));
+  if (session) {
+    await admin.auth().revokeRefreshTokens(session.sub);
+  }
+}
+
 // Not readable by page scripts, never sent over plain HTTP in production, and not sent on cross-site form posts
 function cookieOptions(req) {
   return { httpOnly: true, secure: req.secure, sameSite: 'lax', path: '/' };

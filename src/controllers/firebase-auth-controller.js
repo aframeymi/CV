@@ -2,15 +2,13 @@
 import {
   auth,
   createUserWithEmailAndPassword,
-  signOut,
   sendEmailVerification,
 } from '../config/firebase.js';
-import { SESSION_COOKIE } from '../services/session-service.js';
 
 // Used to set the user's display name after registration
 import { updateProfile } from 'firebase/auth';
 
-// Handles register, logout and password reset using Firebase Auth
+// Handles registration and password reset using Firebase Auth
 class FirebaseAuthController {
 
   // create the Firebase account, then pass to the next handler (profile creation)
@@ -56,21 +54,6 @@ class FirebaseAuthController {
         const errorMessage =
           error.message || 'An error occurred while registering user';
         return res.status(500).json({ error: errorMessage });
-      });
-  }
-
-  // Log out: sign out of Firebase and delete the token cookie
-  logoutUser(req, res) {
-    signOut(auth)
-      .then(() => {
-
-        // Remove the login cookie and return to the home page
-        res.clearCookie(SESSION_COOKIE);
-        return res.redirect('/');
-      })
-      .catch((error) => {
-        console.error(error);
-        res.status(500).json({ error: 'Internal Server Error' });
       });
   }
 

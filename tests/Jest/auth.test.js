@@ -3,7 +3,7 @@
 import request from 'supertest';
 import app from '../../src/app.js';
 import { FirebaseIdentityError, signInWithPassword } from '../../src/services/firebase-identity.js';
-import { createSessionCookie, verifySessionCookie } from './mocks/firebase.js';
+import { createSessionCookie, revokeRefreshTokens, verifySessionCookie } from './mocks/firebase.js';
 import { SESSION_COOKIE, citizen, logInAs } from './helpers/auth.js';
 
 jest.mock('../../src/services/firebase-identity.js', () => {
@@ -118,5 +118,37 @@ describe('session checks', () => {
     await request(app).get('/profile').set('Cookie', SESSION_COOKIE);
 
     expect(verifySessionCookie).toHaveBeenCalledWith('test-session', true);
+  });
+});
+
+describe('POST /api/logout', () => {
+  it('revokes the session at Firebase, so a copied cookie stops working', async () => {
+    verifySessionCookie.mockResolvedValue({ sub: citizen.firebaseUid, uid: citizen.firebaseUid });
+
+    const response = await request(app).post('/api/logout').set('Cookie', SESSION_COOKIE);
+
+    expect(response.status).toBe(302);
+    expect(response.headers.location).toBe('/');
+    expect(revokeRefreshTokens).toHaveBeenCalledWith(citizen.firebaseUid);
+  });
+
+  it('deletes the session cookie in the browser', async () => {
+    verifySessionCookie.mockResolvedValue({ sub: citizen.firebaseUid });
+
+    const response = await request(app).post('/api/logout').set('Cookie', SESSION_COOKIE);
+
+    const cookie = sessionCookieFrom(response);
+    expect(cookie).toMatch(/^session=;/);
+    expect(cookie).toMatch(/Expires=Thu, 01 Jan 1970/);
+  });
+
+  it('still clears the cookie when the session is already invalid', async () => {
+    verifySessionCookie.mockRejectedValue(new Error('session revoked'));
+
+    const response = await request(app).post('/api/logout').set('Cookie', SESSION_COOKIE);
+
+    expect(response.status).toBe(302);
+    expect(revokeRefreshTokens).not.toHaveBeenCalled();
+    expect(sessionCookieFrom(response)).toMatch(/^session=;/);
   });
 });

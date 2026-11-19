@@ -1,5 +1,5 @@
 import { FirebaseIdentityError, signInWithPassword } from '../services/firebase-identity.js';
-import { startSession } from '../services/session-service.js';
+import { endSession, startSession } from '../services/session-service.js';
 
 // The same message for a wrong email and a wrong password, so the form does not reveal which accounts exist
 const LOGIN_FAILED = 'Incorrect email or password.';
@@ -28,6 +28,15 @@ export async function logIn(req, res, next) {
     if (failure) {
       return renderSignIn(res, failure.status, { error: failure.message });
     }
+    return next(error);
+  }
+}
+
+export async function logOut(req, res, next) {
+  try {
+    await endSession(req, res);
+    return res.redirect('/');
+  } catch (error) {
     return next(error);
   }
 }
