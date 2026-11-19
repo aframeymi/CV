@@ -1,6 +1,5 @@
 // Example users and reports for local development and demos. Never run against production.
-import { randomBytes } from 'crypto';
-import bcrypt from 'bcrypt';
+// Demo users have no Firebase account, so they can never log in.
 
 // example.com is reserved for documentation, so no real person can own these addresses
 export const DEMO_EMAIL_DOMAIN = '@example.com';
@@ -20,7 +19,6 @@ const SAMPLE_REPORTS = [
 // Enough reports to make the track and graph pages show realistic load
 const GENERATED_REPORT_COUNT = 1000;
 const STATUSES = ['OPEN', 'IN_PROGRESS', 'RESOLVED'];
-const BCRYPT_COST = 10;
 
 export async function seedDemoData(prisma, { neighborhoods, categories }) {
   await removeDemoData(prisma);
@@ -60,16 +58,11 @@ async function createDemoUsers(prisma) {
   for (const demoUser of DEMO_USERS) {
     users.push(
       await prisma.user.create({
-        data: { ...demoUser, passwordHash: await unusablePasswordHash(), roleId: citizenRole.id },
+        data: { ...demoUser, roleId: citizenRole.id },
       })
     );
   }
   return users;
-}
-
-// Demo users have no Firebase account and never log in, so their password is random and never stored anywhere
-function unusablePasswordHash() {
-  return bcrypt.hash(randomBytes(32).toString('hex'), BCRYPT_COST);
 }
 
 function pickRandom(items) {
