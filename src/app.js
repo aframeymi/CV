@@ -7,7 +7,7 @@ import middleware from './middleware/index.js';
 import reportsRouter from './routes/reports.js';
 import uploadRouter from './routes/upload.js';
 import { upload } from './routes/upload.js';
-import { canModifyReport } from './policies/report-policy.js';
+import { loadReportForModification } from './middleware/report-access.js';
 
 const app = express();
 
@@ -144,29 +144,19 @@ app.get('/track', async (req, res) => {
   }
 });
 
-// Show the edit form for one report
-app.get('/track/:id/edit', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const report = await prisma.report.findUnique({ where: { id } });
-    if (!report) return res.status(404).send('Report not found');
+// Only the author or an admin may open the edit form, save changes, or delete a report
+const modifiableReport = [middleware.requireVerifiedUser, loadReportForModification];
 
-    res.render('edit', { title: 'Edit Report', report });
-  } catch (err) {
-    console.error('Error loading edit page:', err);
-    res.status(500).send('Internal Server Error');
-  }
+app.get('/track/:id/edit', modifiableReport, (req, res) => {
+  res.render('edit', { title: 'Edit Report', report: req.report });
 });
 
-// Save edited title and description for one report
-app.post('/track/:id/edit', async (req, res) => {
-  const { id } = req.params;
+app.post('/track/:id/edit', modifiableReport, async (req, res) => {
   const { title, description } = req.body;
   try {
     await prisma.report.update({
-      where: { id },
-      data: { ...({title: title}), 
-      ...({description:description })},
+      where: { id: req.report.id },
+      data: { title, description },
     });
     res.redirect('/track');
   } catch (err) {
@@ -175,17 +165,9 @@ app.post('/track/:id/edit', async (req, res) => {
   }
 });
 
-// Delete a report (by author or admin)
-app.post('/track/:id/delete', middleware.requireVerifiedUser, async (req, res) => {
+app.post('/track/:id/delete', modifiableReport, async (req, res) => {
   try {
-    const reportId = req.params.id;
-    const report = await prisma.report.findUnique({ where: { id: reportId } });
-    if (!report) return res.status(404).send('Report not found');
-
-    if (!canModifyReport(req.currentUser, report)) {
-      return res.status(403).send('You can only delete your own reports.');
-    }
-    await prisma.report.delete({ where: { id: reportId } });
+    await prisma.report.delete({ where: { id: req.report.id } });
     res.redirect('/track');
   } catch (err) {
     console.error('Error deleting report:', err);

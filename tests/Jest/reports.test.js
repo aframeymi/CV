@@ -145,3 +145,97 @@ describe('POST /track/:id/delete', () => {
     expect(response.status).toBe(404);
   });
 });
+
+describe('editing a report', () => {
+  const editForm = { title: 'New title', description: 'New text' };
+
+  function openEditForm(id, { loggedIn = true } = {}) {
+    const call = request(app).get(`/track/${id}/edit`);
+    return loggedIn ? call.set('Cookie', SESSION_COOKIE) : call;
+  }
+
+  function saveEdit(id, { loggedIn = true } = {}) {
+    const call = request(app).post(`/track/${id}/edit`).type('form').send(editForm);
+    return loggedIn ? call.set('Cookie', SESSION_COOKIE) : call;
+  }
+
+  it('asks a visitor who is not logged in to log in before opening the form', async () => {
+    prisma.report.findUnique.mockResolvedValue(ownReport);
+
+    const response = await openEditForm(ownReport.id, { loggedIn: false });
+
+    expect(response.status).toBe(401);
+  });
+
+  it('asks a visitor who is not logged in to log in before saving', async () => {
+    prisma.report.findUnique.mockResolvedValue(ownReport);
+
+    const response = await saveEdit(ownReport.id, { loggedIn: false });
+
+    expect(response.status).toBe(401);
+    expect(prisma.report.update).not.toHaveBeenCalled();
+  });
+
+  it('shows the form to the author', async () => {
+    logInAs(citizen);
+    prisma.report.findUnique.mockResolvedValue(ownReport);
+
+    const response = await openEditForm(ownReport.id);
+
+    expect(response.status).toBe(200);
+    expect(response.text).toContain('Mine');
+  });
+
+  it('saves changes made by the author', async () => {
+    logInAs(citizen);
+    prisma.report.findUnique.mockResolvedValue(ownReport);
+
+    const response = await saveEdit(ownReport.id);
+
+    expect(response.status).toBe(302);
+    expect(prisma.report.update).toHaveBeenCalledWith({
+      where: { id: ownReport.id },
+      data: { title: 'New title', description: 'New text' },
+    });
+  });
+
+  it('lets an admin edit any report', async () => {
+    logInAs(admin);
+    prisma.report.findUnique.mockResolvedValue(othersReport);
+
+    const response = await saveEdit(othersReport.id);
+
+    expect(response.status).toBe(302);
+    expect(prisma.report.update).toHaveBeenCalled();
+  });
+
+  it('hides the form from a citizen who is not the author', async () => {
+    logInAs(citizen);
+    prisma.report.findUnique.mockResolvedValue(othersReport);
+
+    const response = await openEditForm(othersReport.id);
+
+    expect(response.status).toBe(403);
+    expect(response.text).not.toContain('Theirs');
+  });
+
+  it('stops a citizen saving changes to a report by another user', async () => {
+    logInAs(citizen);
+    prisma.report.findUnique.mockResolvedValue(othersReport);
+
+    const response = await saveEdit(othersReport.id);
+
+    expect(response.status).toBe(403);
+    expect(prisma.report.update).not.toHaveBeenCalled();
+  });
+
+  it('returns 404 for a report that does not exist', async () => {
+    logInAs(citizen);
+    prisma.report.findUnique.mockResolvedValue(null);
+
+    const response = await saveEdit('missing');
+
+    expect(response.status).toBe(404);
+    expect(prisma.report.update).not.toHaveBeenCalled();
+  });
+});
