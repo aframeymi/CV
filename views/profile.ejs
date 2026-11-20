@@ -12,14 +12,14 @@
     <%# Profile card: picture, name and account type (fixed text, not the real user's data) %>
     <div class="personal-info">
         <div class="profile">
-            <img src="pp.jpg" width="80px" height="80px" style="border-radius: 50%;">
+            <img src="pp.jpg" width="80px" height="80px" class="round-picture">
             <h4>User</h4>
             <h5>Premium User</h5>
         </div>
         <%# Settings form (display only: it has no action, and the button does nothing yet) %>
         <form action="#">
             <input type="email" placeholder="Email"> <br>
-            <select name="language" id="language" style="color: #A0D0DF;">
+            <select name="language" id="language" class="language-select">
                 <option value="English" selected>English</option>
                 <option value="German">German</option>
                 <option value="Persian">Persian</option>
@@ -61,9 +61,9 @@
     <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d313275.8136508344!2d13.0951001857
     5723!3d52.506386175110244!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47a84e373f035901%3A0x4
     2120465b5e3b70!2sBerlin!5e1!3m2!1sen!2sde!4v1740049865470!5m2!1sen!2sde" width="100%" height="350px"
-        style="border:0; margin: -5px;" allowfullscreen="" loading="lazy"
+        allowfullscreen="" loading="lazy"
         referrerpolicy="no-referrer-when-downgrade"></iframe>
-        <%# Script with the profile menu toggle (callMenu) %>
+        <%# Script with the profile menu toggle %>
         <script src="/script.js"></script>
 
 </body>

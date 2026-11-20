@@ -4,17 +4,18 @@ import app from '../../src/app.js';
 import prisma from '../../prismaClient.js';
 import { SESSION_COOKIE, admin, citizen, logInAs } from './helpers/auth.js';
 import { NEIGHBORHOOD_ID, OTHER_REPORT_ID, REPORT_ID } from './helpers/ids.js';
+import { postForm } from './helpers/browser.js';
 
 const validForm = { title: 'Broken light', description: 'Out since Monday', neighborhoodId: NEIGHBORHOOD_ID };
 const ownReport = { id: REPORT_ID, authorId: citizen.id, title: 'Mine', description: 'text' };
 const othersReport = { id: OTHER_REPORT_ID, authorId: 'someone-else', title: 'Theirs', description: 'text' };
 
 function submitReport(form) {
-  return request(app).post('/submit-report').set('Cookie', SESSION_COOKIE).type('form').send(form);
+  return postForm('/submit-report', form, { sessionCookie: SESSION_COOKIE });
 }
 
 function deleteReport(id) {
-  return request(app).post(`/track/${id}/delete`).set('Cookie', SESSION_COOKIE);
+  return postForm(`/track/${id}/delete`, {}, { sessionCookie: SESSION_COOKIE });
 }
 
 describe('POST /submit-report', () => {
@@ -25,7 +26,7 @@ describe('POST /submit-report', () => {
   });
 
   it('asks a visitor who is not logged in to log in', async () => {
-    const response = await request(app).post('/submit-report').type('form').send(validForm);
+    const response = await postForm('/submit-report', validForm);
 
     expect(response.status).toBe(401);
     expect(prisma.report.create).not.toHaveBeenCalled();
@@ -189,7 +190,7 @@ describe('GET /track', () => {
 
 describe('POST /track/:id/delete', () => {
   it('asks a visitor who is not logged in to log in', async () => {
-    const response = await request(app).post(`/track/${REPORT_ID}/delete`);
+    const response = await postForm(`/track/${REPORT_ID}/delete`);
 
     expect(response.status).toBe(401);
     expect(prisma.report.delete).not.toHaveBeenCalled();
@@ -253,8 +254,7 @@ describe('editing a report', () => {
   }
 
   function saveEdit(id, { loggedIn = true, form = editForm } = {}) {
-    const call = request(app).post(`/track/${id}/edit`).type('form').send(form);
-    return loggedIn ? call.set('Cookie', SESSION_COOKIE) : call;
+    return postForm(`/track/${id}/edit`, form, { sessionCookie: loggedIn ? SESSION_COOKIE : undefined });
   }
 
   it('asks a visitor who is not logged in to log in before opening the form', async () => {

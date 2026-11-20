@@ -4,7 +4,10 @@ import prisma from '../prismaClient.js';
 import cookieParser from 'cookie-parser';
 import router from './routes/index.js';
 import middleware from './middleware/index.js';
+import { checkCsrfToken, provideCsrfToken, requireCsrfToken } from './middleware/csrf-protection.js';
 import { receiveImage } from './middleware/image-upload.js';
+import { limitReportSubmissions } from './middleware/rate-limits.js';
+import { securityHeaders } from './middleware/security-headers.js';
 import { deleteImage, saveImage, UnsupportedImageError } from './services/image-storage.js';
 import { loadReportForModification } from './middleware/report-access.js';
 import { findTopReporters, getPublicReportStatistics } from './services/report-statistics.js';
@@ -17,12 +20,20 @@ const app = express();
 // Render terminates HTTPS at its proxy, so trust its X-Forwarded-Proto header for req.secure
 app.set('trust proxy', 1);
 
+// First, so that every response carries the headers, including static files and errors
+app.use(securityHeaders);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // Static files never need the session, so serve them before it is checked.
-// nosniff stops browsers from treating an uploaded file as anything other than its declared type.
-app.use(express.static('public', { setHeaders: (res) => res.setHeader('X-Content-Type-Options', 'nosniff') }));
+// The security headers include nosniff, so browsers never treat an upload as a different type.
+app.use(express.static('public'));
+// Chart.js is served from the installed npm package, so pages load no code from other sites
+const CHART_JS = path.join(process.cwd(), 'node_modules', 'chart.js', 'dist', 'chart.umd.js');
+app.get('/vendor/chart.umd.js', (req, res) => res.sendFile(CHART_JS));
 app.use(cookieParser());
+// Before the session is checked, so a forged request is refused without any further work
+app.use(provideCsrfToken);
+app.use(requireCsrfToken);
 app.use(middleware.attachUserIfPresent);
 app.set('view engine', 'ejs');
 app.set('views', path.join(process.cwd(), 'views'));
@@ -63,8 +74,13 @@ app.get('/report', async (req, res) => {
   }
 });
 
+const limitReports = limitReportSubmissions((req, res) =>
+  res.status(429).send('You have sent many reports in a short time. Please try again in an hour.')
+);
+
 // New Report Submission. The image is saved only once the rest of the form is valid.
-app.post('/submit-report', middleware.requireVerifiedUser, receiveImage, async (req, res) => {
+// The limit comes before the image is read, so a client over the limit cannot fill the memory either.
+app.post('/submit-report', middleware.requireVerifiedUser, limitReports, receiveImage, checkCsrfToken, async (req, res) => {
   const { values, problem } = checkForm(newReportForm, req.body);
   if (problem) {
     return res.status(422).send(problem);

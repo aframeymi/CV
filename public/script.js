@@ -1,5 +1,7 @@
-// Open or close the profile dropdown menu in the navbar (called by the onclick in navbar.ejs)
-function callMenu(){
-// Toggle the 'show' class, which makes the menu visible or hidden
-document.getElementById("hiddenLinks").classList.toggle("show")
-}
+// Opens or closes the profile menu in the navbar when the picture or the name is clicked
+document.querySelectorAll('[data-toggles-menu]').forEach((trigger) => {
+  trigger.addEventListener('click', (event) => {
+    event.preventDefault();
+    document.getElementById('hiddenLinks').classList.toggle('show');
+  });
+});

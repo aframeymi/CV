@@ -19,6 +19,7 @@ import {
 // The same message for a wrong email and a wrong password, so the form does not reveal which accounts exist
 const LOGIN_FAILED = 'Incorrect email or password.';
 const TOO_MANY_ATTEMPTS = 'Too many attempts. Please wait a few minutes and try again.';
+const TOO_MANY_REQUESTS_THIS_HOUR = 'Too many attempts. Please try again in an hour.';
 const REGISTERED = 'Account created. We sent you an email: please verify your address, then sign in.';
 const PASSWORD_RESET_REQUESTED =
   'If an account exists for this address, we sent it a link to reset the password.';
@@ -120,6 +121,19 @@ async function nameAccount(uid, displayName) {
   } catch (error) {
     console.error('Could not set the display name of a new account:', error.message);
   }
+}
+
+// Shown once a client has reached one of the rate limits in routes/index.js
+export function refuseMoreLogins(req, res) {
+  return renderSignIn(res, 429, { error: TOO_MANY_ATTEMPTS });
+}
+
+export function refuseMorePasswordResets(req, res) {
+  return renderSignIn(res, 429, { error: TOO_MANY_REQUESTS_THIS_HOUR });
+}
+
+export function refuseMoreRegistrations(req, res) {
+  return renderSignUp(res, 429, TOO_MANY_REQUESTS_THIS_HOUR);
 }
 
 function renderSignIn(res, status, { error, notice } = {}) {

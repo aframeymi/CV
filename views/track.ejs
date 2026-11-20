@@ -64,12 +64,13 @@
             <br>
 
             <%# Edit button: opens the edit page for this report %>
-            <form action="/track/<%= report.id %>/edit" method="GET" style="display:inline;">
+            <form action="/track/<%= report.id %>/edit" method="GET" class="inline-form">
                 <button class="edit" type="submit">Edit</button>
               </form>
 
               <%# Delete button: sends a POST to delete this report %>
-              <form action="/track/<%= report.id %>/delete" method="POST" style="display:inline;">
+              <form action="/track/<%= report.id %>/delete" method="POST" class="inline-form">
+                <%- include('includes/csrf-field') %>
                 <button class="delete" type="submit">Delete</button>
               </form>
             </div>
@@ -91,7 +92,7 @@
     234 more similar reports in your area.
 </h3>    
 
-<%# Script with the profile menu toggle (callMenu) %>
+<%# Script with the profile menu toggle %>
 <script src="/script.js"></script>
 
 </body>
