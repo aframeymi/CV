@@ -10,7 +10,7 @@ Run Community Voice locally and confirm that the application can connect to its 
 
 ### Requirements
 
-- Node.js 22 or later
+- Node.js 22
 - npm 9 or later
 - Git
 - A PostgreSQL database, for example a Neon development branch
@@ -83,8 +83,6 @@ A successful setup should result in all of the following:
 - If the server stops with a message about `CSRF_SECRET`, set it in `.env` as shown in step 3.
 - If port 5000 is occupied, stop the other process or set a different `PORT` in `.env`.
 
-> Before submission, run these commands in a clean environment and confirm that they match the actual repository structure and `package.json` scripts.
-
 ## 2. Tutorial: create, review, and manage a report
 
 ### Goal
@@ -102,17 +100,17 @@ Complete the main citizen workflow from registration to report tracking.
 7. Navigate to the report form.
 8. Enter a concise title, for example `Pothole beside the market`.
 9. Describe the problem, including its approximate location and why it needs attention.
-10. Select the correct neighbourhood.
+10. Select the city, then the neighbourhood. The neighbourhood list only fills once a city is chosen.
 11. Add an image if one helps explain the issue: one JPEG, PNG, or WebP file of at most 5 MB.
 12. Submit the report.
-13. Open the tracking page and confirm that the report appears with status `OPEN`.
+13. You are taken to the tracking page. Confirm that your report appears first, with its title, description, and image.
 14. Open the report's edit action and correct a non-critical detail, if needed.
 15. Return to the tracking page and confirm that the updated text is displayed.
 16. If testing deletion, delete only the test report and confirm that it no longer appears.
 
 ### Expected result
 
-The report should appear on the tracking page and remain associated with the authenticated user. If the implementation creates attachment records, a report with an image should also have attachment metadata and a stored file path.
+The report appears on the tracking page, newest first, and belongs to your account: only you or an administrator can edit or delete it. In the database, it has the status `OPEN`, a first entry in its status history, and, if you added an image, an attachment record with the image's path, type, and size. Section 5 shows how to inspect these records.
 
 ### If the report does not appear
 
