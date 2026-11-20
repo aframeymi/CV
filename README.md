@@ -31,7 +31,7 @@ This README is primarily for developers who want to run, test, or contribute to 
 ## Technology stack
 
 - **Runtime:** Node.js 22 or later
-- **Server:** Express 4
+- **Server:** Express 5
 - **Templates:** EJS
 - **Database:** PostgreSQL
 - **ORM:** Prisma

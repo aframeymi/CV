@@ -11,8 +11,17 @@ updates:
     cooldown:
       default-days: 14
     open-pull-requests-limit: 5
+    # A package goes into the first group that matches it, so the groups of packages that only work
+    # in matching versions come first. Their updates, major ones included, arrive in one pull request.
     groups:
-      # Small updates of development tools arrive together, to keep the number of pull requests low
+      # The Prisma CLI and client must have the same version. Updated alone, the client stops the app
+      # at startup, which the tests cannot see because they replace the database with a fake.
+      prisma:
+        patterns: ['prisma', '@prisma/*']
+      # Jest runs the tests through babel-jest and Babel, which must match each other's major versions
+      test-tooling:
+        patterns: ['jest', '@types/jest', 'babel-jest', '@babel/*']
+      # Small updates of other development tools arrive together, to keep the number of pull requests low
       development-tools:
         dependency-type: development
         update-types: [minor, patch]
