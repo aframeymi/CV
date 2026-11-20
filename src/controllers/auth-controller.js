@@ -6,6 +6,7 @@ import {
   signInWithPassword,
   signUpWithPassword,
 } from '../services/firebase-identity.js';
+import { logSecurityEvent } from '../services/server-log.js';
 import { endSession, startSession } from '../services/session-service.js';
 import { findOrCreateProfile, ProfileConflictError } from '../services/user-profile-service.js';
 import {
@@ -49,12 +50,14 @@ export async function logIn(req, res, next) {
     return renderSignIn(res, 422, { error: problem });
   }
   try {
-    const { idToken } = await signInWithPassword(values.email, values.password);
+    const { idToken, uid } = await signInWithPassword(values.email, values.password);
     await startSession(req, res, idToken);
+    logSecurityEvent('login.succeeded', req, { firebaseUid: uid });
     return res.redirect('/');
   } catch (error) {
     const failure = error instanceof FirebaseIdentityError && LOGIN_FAILURES[error.code];
     if (failure) {
+      logSecurityEvent('login.failed', req, { reason: error.code });
       return renderSignIn(res, failure.status, { error: failure.message });
     }
     return next(error);
@@ -64,6 +67,7 @@ export async function logIn(req, res, next) {
 export async function logOut(req, res, next) {
   try {
     await endSession(req, res);
+    logSecurityEvent('logout', req);
     return res.redirect('/');
   } catch (error) {
     return next(error);
@@ -82,6 +86,7 @@ export async function register(req, res, next) {
     await nameAccount(account.uid, displayName);
     await sendVerificationEmail(account.idToken);
     await findOrCreateProfile({ uid: account.uid, email: account.email, name: displayName });
+    logSecurityEvent('account.registered', req, { firebaseUid: account.uid });
     return renderSignIn(res, 201, { notice: REGISTERED });
   } catch (error) {
     if (error instanceof ProfileConflictError) {
@@ -103,6 +108,7 @@ export async function requestPasswordReset(req, res, next) {
   }
   try {
     await sendPasswordResetEmail(values.email);
+    logSecurityEvent('password_reset.requested', req);
   } catch (error) {
     if (!(error instanceof FirebaseIdentityError)) {
       return next(error);

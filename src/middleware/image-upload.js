@@ -1,6 +1,7 @@
 // Reads the optional image of the report form into memory, within strict limits.
 // Nothing is written to disk here: the route saves the image only once the whole form is valid.
 import multer from 'multer';
+import { logSecurityEvent } from '../services/server-log.js';
 
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const IMAGE_FIELD = 'image';
@@ -27,6 +28,7 @@ export function receiveImage(req, res, next) {
       return next();
     }
     if (error instanceof multer.MulterError) {
+      logSecurityEvent('upload.rejected', req, { reason: error.code });
       const { status, message } = UPLOAD_ERRORS[error.code] ?? DEFAULT_UPLOAD_ERROR;
       return res.status(status).send(message);
     }

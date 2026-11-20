@@ -1,6 +1,7 @@
 import prisma from '../../prismaClient.js';
 import { canModifyReport } from '../policies/report-policy.js';
 import { isRecordId } from '../validation/forms.js';
+import { logSecurityEvent } from '../services/server-log.js';
 
 // Must run after requireVerifiedUser. Loads the report into req.report only if the user may change it.
 export async function loadReportForModification(req, res, next) {
@@ -13,6 +14,7 @@ export async function loadReportForModification(req, res, next) {
       return res.status(404).send('Report not found.');
     }
     if (!canModifyReport(req.currentUser, report)) {
+      logSecurityEvent('access.denied', req, { reason: 'not_report_author', reportId: report.id });
       return res.status(403).send('You can only change your own reports.');
     }
     req.report = report;

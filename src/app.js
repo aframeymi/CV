@@ -13,6 +13,7 @@ import { deleteImage, saveImage, UnsupportedImageError } from './services/image-
 import { loadReportForModification } from './middleware/report-access.js';
 import { findTopReporters, getPublicReportStatistics } from './services/report-statistics.js';
 import { findReportPage } from './services/report-listing.js';
+import { logSecurityEvent } from './services/server-log.js';
 import { toScriptJson } from './utils/script-json.js';
 import { checkForm, newReportForm, pageQuery, reportChangesForm } from './validation/forms.js';
 
@@ -94,10 +95,12 @@ app.post('/submit-report', middleware.requireVerifiedUser, limitReports, receive
       return res.status(422).send('Invalid neighborhoodId.');
     }
     image = req.file ? await saveImage(req.file) : null;
-    await createReportWithHistory({ title, description, neighborhoodId, author: req.currentUser, image });
+    const report = await createReportWithHistory({ title, description, neighborhoodId, author: req.currentUser, image });
+    logSecurityEvent('report.created', req, { reportId: report.id });
     return res.redirect('/track');
   } catch (error) {
     if (error instanceof UnsupportedImageError) {
+      logSecurityEvent('upload.rejected', req, { reason: 'unsupported_type' });
       return res.status(415).send(error.message);
     }
     if (image) {
@@ -107,7 +110,8 @@ app.post('/submit-report', middleware.requireVerifiedUser, limitReports, receive
   }
 });
 
-// Saves the report, its first status entry, and its image attachment together, or none of them
+// Saves the report, its first status entry, and its image attachment together, or none of them.
+// Returns the new report.
 function createReportWithHistory({ title, description, neighborhoodId, author, image }) {
   return prisma.$transaction(async (tx) => {
     const report = await tx.report.create({
@@ -121,6 +125,7 @@ function createReportWithHistory({ title, description, neighborhoodId, author, i
         data: { reportId: report.id, url: image.url, mimeType: image.mimeType, sizeBytes: image.sizeBytes },
       });
     }
+    return report;
   });
 }
 
@@ -143,6 +148,12 @@ app.get('/track', async (req, res, next) => {
 // Only the author or an admin may open the edit form, save changes, or delete a report
 const modifiableReport = [middleware.requireVerifiedUser, loadReportForModification];
 
+// Records who changed a report, and whether an admin changed a report by someone else
+function logReportChange(event, req) {
+  const byAdminForAuthor = req.report.authorId !== req.currentUser.id;
+  logSecurityEvent(event, req, { reportId: req.report.id, authorId: req.report.authorId, byAdminForAuthor });
+}
+
 app.get('/track/:id/edit', modifiableReport, (req, res) => {
   res.render('edit', { title: 'Edit Report', report: req.report });
 });
@@ -155,6 +166,7 @@ app.post('/track/:id/edit', modifiableReport, async (req, res, next) => {
   try {
     // values holds only the title and description, so no other column can be changed through this form
     await prisma.report.update({ where: { id: req.report.id }, data: values });
+    logReportChange('report.updated', req);
     return res.redirect('/track');
   } catch (error) {
     return next(error);
@@ -164,6 +176,7 @@ app.post('/track/:id/edit', modifiableReport, async (req, res, next) => {
 app.post('/track/:id/delete', modifiableReport, async (req, res, next) => {
   try {
     await prisma.report.delete({ where: { id: req.report.id } });
+    logReportChange('report.deleted', req);
     return res.redirect('/track');
   } catch (error) {
     return next(error);

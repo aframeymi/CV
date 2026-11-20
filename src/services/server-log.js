@@ -14,3 +14,18 @@ export function logError(errorId, req, error) {
     error: error?.stack ?? String(error),
   });
 }
+
+// Security-relevant actions such as logins, refused requests, and changes to reports.
+// People appear only by ID and IP address: entries never hold passwords, tokens, cookies, or email addresses.
+export function logSecurityEvent(event, req, details = {}) {
+  writeEntry(console.info, {
+    type: 'security',
+    event,
+    ip: req.ip,
+    userId: req.currentUser?.id,
+    firebaseUid: req.user?.uid,
+    method: req.method,
+    path: req.path,
+    ...details,
+  });
+}
