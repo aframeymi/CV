@@ -8,7 +8,7 @@ import { checkCsrfToken, provideCsrfToken, requireCsrfToken } from './middleware
 import { handleError, notFound } from './middleware/error-handler.js';
 import { receiveImage } from './middleware/image-upload.js';
 import { limitReportSubmissions } from './middleware/rate-limits.js';
-import { securityHeaders } from './middleware/security-headers.js';
+import { preventCaching, securityHeaders } from './middleware/security-headers.js';
 import { deleteImage, saveImage, UnsupportedImageError } from './services/image-storage.js';
 import { loadReportForModification } from './middleware/report-access.js';
 import { findTopReporters, getPublicReportStatistics } from './services/report-statistics.js';
@@ -32,6 +32,7 @@ app.use(express.static('public'));
 // Chart.js is served from the installed npm package, so pages load no code from other sites
 const CHART_JS = path.join(process.cwd(), 'node_modules', 'chart.js', 'dist', 'chart.umd.js');
 app.get('/vendor/chart.umd.js', (req, res) => res.sendFile(CHART_JS));
+app.use(preventCaching);
 app.use(cookieParser());
 // Before the session is checked, so a forged request is refused without any further work
 app.use(provideCsrfToken);
