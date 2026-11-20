@@ -265,7 +265,7 @@ These risks are left in place on purpose, because they are the provider's respon
 
 These could not be confirmed from the repository, because they are settings in external dashboards.
 
-- [ ] `NODE_ENV=production` is set on Render. Stack traces no longer depend on it, since the application has its own error handler (T-33), but Express and EJS run faster with it.
+- [x] `NODE_ENV=production` is set on Render. Stack traces no longer depend on it, since the application has its own error handler (T-33), but Express and EJS run faster with it.
 - [x] Whether the deployed database was seeded. **Yes**: it held three example users, one of them an admin with no Firebase account (T-09). The site was not running, and all other data was test data from the developer.
 - [x] Whether the local `.env` and the deployed service share one database. **Yes**: both used the same Neon branch. A separate development branch is being created so local work never touches production.
 - [ ] Email enumeration protection is enabled in Firebase Authentication (T-13).
@@ -273,8 +273,8 @@ These could not be confirmed from the repository, because they are settings in e
 - [ ] Which IP addresses Neon accepts connections from (T-04).
 - [ ] The database role used by the application has only the privileges it needs.
 - [ ] The developer laptop uses disk encryption (T-01).
-- [ ] On Render, `req.ip` is the visitor's own address and not that of a proxy. The rate limits count per address, so if every request seemed to come from one proxy, all visitors would share one limit (T-11, T-16).
-- [ ] `CSRF_SECRET` is set on Render to its own random value, different from the one in the local `.env` (T-30).
+- [x] On Render, `req.ip` is the visitor's own address and not that of a proxy (T-11, T-16). **Not at first**: with one trusted proxy, the log showed private `10.x` addresses that changed between requests, so the rate limits counted Render's proxies, not visitors. Measured: Cloudflare and two Render proxies stand in front of the app. With `TRUST_PROXY_HOPS=3`, the log shows the visitor's real address, also when a request sends a fake `X-Forwarded-For`.
+- [x] `CSRF_SECRET` is set on Render to its own random value, different from the one in the local `.env` (T-30).
 - [x] GitHub secret scanning and push protection are enabled for the repository (T-41).
 - [x] Branch protection on `main` requires pull requests, requires the CI and CodeQL checks to pass, and blocks force pushes (T-42). **Yes**: the ruleset "Protect main" is active, with the five checks and the CodeQL results required.
-- [ ] Render runs Node 22 or later, as `package.json` requires. `firebase-admin` 14 does not support older versions.
+- [x] Render runs Node 22, as `package.json` requires. The deploy log shows Node.js 22.23.5.

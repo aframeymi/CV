@@ -26,14 +26,6 @@ export function logSecurityEvent(event, req, details = {}) {
     firebaseUid: req.user?.uid,
     method: req.method,
     path: req.path,
-    ...forwardedForDiagnostic(req),
     ...details,
   });
-}
-
-// Temporary, to measure TRUST_PROXY_HOPS on Render: while LOG_FORWARDED_FOR=true, entries also show
-// the X-Forwarded-For list, so the position of the visitor's own address can be counted.
-// Remove this, and the setting on Render, once TRUST_PROXY_HOPS is set.
-function forwardedForDiagnostic(req) {
-  return process.env.LOG_FORWARDED_FOR === 'true' ? { forwardedFor: req.headers['x-forwarded-for'] } : {};
 }
