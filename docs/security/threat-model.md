@@ -217,8 +217,8 @@ The application runs entirely on managed cloud services, so there is no server h
 
 | ID | Threat | STRIDE | Assets | Risk | Status | Fix |
 |---|---|---|---|---|---|---|
-| T-33 | Stack traces can reach users, because there is no central error handler | I | A10 | Medium | Open | Step 7 |
-| T-34 | Actions cannot be traced: logins, denied access, and report edits leave no audit record, so a user can deny having made a change | R | A4 | Medium | Open | Step 7 |
+| T-33 | Stack traces could reach users, because there was no central error handler: broken JSON sent to the login route showed the full trace with server file paths. **Fixed:** one error handler answers every unexpected error with a general page and a short error ID, and logs the details under that ID. Malformed or oversized requests get 400 or 413. [`error-handler.js`](../../src/middleware/error-handler.js), tested in [`error-handler.test.js`](../../tests/Jest/error-handler.test.js) | I | A10 | Medium | Mitigated | Step 7 |
+| T-34 | Actions could not be traced: logins, denied access, and report edits left no record, so a user could deny having made a change. **Fixed:** logins, logouts, new accounts, reset requests, refused requests, CSRF and rate-limit refusals, rejected uploads, and every report change are logged as JSON lines with user ID and IP address, never with passwords, tokens, or email addresses. JSON also prevents log injection. The log is not tamper-proof and is kept only as long as Render keeps it, see section 8. [`server-log.js`](../../src/services/server-log.js), tested in [`security-log.test.js`](../../tests/Jest/security-log.test.js) | R | A4 | Medium | Mitigated | Step 7 |
 | T-35 | Phone numbers were required at registration but never used, so the application held personal data it did not need. **Fixed:** the field is gone and a migration drops the stored numbers (data minimisation) | I | A1 | Low | Mitigated | Step 5 |
 
 ### 6.5 Development and operations
@@ -240,8 +240,8 @@ Every STRIDE category is represented at the application boundary (B1). This tabl
 |---|---|---|
 | Spoofing | T-43 service-account key misuse | Medium |
 | Tampering | T-40 vulnerable dependencies | High |
-| Repudiation | T-34 no audit record | Medium |
-| Information disclosure | T-33 stack traces can reach users | Medium |
+| Repudiation | None open. Log retention and integrity are accepted, see section 8 | Low |
+| Information disclosure | T-41 a secret committed by mistake | Medium |
 | Denial of service | T-40 vulnerable dependencies | High |
 | Elevation of privilege | T-40 vulnerable dependencies | High |
 
@@ -254,6 +254,7 @@ These risks are left in place on purpose, because they are the provider's respon
 | T-02 data-centre security | Physical security belongs to Render, Neon, and Google. |
 | T-03 volumetric attacks | Mitigation happens at the provider edge. Application rate limits (Step 6) only cover abuse at the request level. |
 | T-45 upload durability | This affects availability of images, not their confidentiality. Object storage would be the proper fix, and is beyond the Level 1 scope. |
+| Log retention and integrity (part of T-34) | Security events go to Render's log, which keeps them only for a limited time and which anyone with access to the Render account could read. An append-only audit table or an external log service would be stronger, and is beyond the Level 1 scope. |
 | No multi-factor authentication | Firebase can provide it, but it adds significant work for a project of this size. |
 | Registration reveals taken addresses (part of T-13) | A person registering must be told that their address already has an account. Hiding it would need an email-based sign-up flow. Rate limits in Step 6 slow down anyone testing many addresses. |
 | One shared Firebase project for development and production | Accounts created while testing locally also exist for the live site. A second Firebase project would separate them, at the cost of more setup. |
@@ -263,7 +264,7 @@ These risks are left in place on purpose, because they are the provider's respon
 
 These could not be confirmed from the repository, because they are settings in external dashboards.
 
-- [ ] `NODE_ENV=production` is set on Render. If not, Express shows stack traces to users (T-33).
+- [ ] `NODE_ENV=production` is set on Render. Stack traces no longer depend on it, since the application has its own error handler (T-33), but Express and EJS run faster with it.
 - [x] Whether the deployed database was seeded. **Yes**: it held three example users, one of them an admin with no Firebase account (T-09). The site was not running, and all other data was test data from the developer.
 - [x] Whether the local `.env` and the deployed service share one database. **Yes**: both used the same Neon branch. A separate development branch is being created so local work never touches production.
 - [ ] Email enumeration protection is enabled in Firebase Authentication (T-13).

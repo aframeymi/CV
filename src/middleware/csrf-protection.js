@@ -4,6 +4,7 @@
 // the cookie, but it cannot read the page, so it cannot put the matching token into its forged form.
 // CSRF_SECRET comes from the environment, which server.js loads from .env before anything else.
 import { doubleCsrf } from 'csrf-csrf';
+import { logSecurityEvent } from '../services/server-log.js';
 import { SESSION_COOKIE } from '../services/session-service.js';
 
 export const CSRF_FIELD = '_csrf';
@@ -49,5 +50,6 @@ export function checkCsrfToken(req, res, next) {
   if (validateRequest(req)) {
     return next();
   }
+  logSecurityEvent('csrf.rejected', req);
   return res.status(403).send(EXPIRED_FORM);
 }

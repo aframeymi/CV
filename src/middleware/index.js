@@ -1,4 +1,5 @@
 import { isAdmin } from '../policies/roles.js';
+import { logSecurityEvent } from '../services/server-log.js';
 import { readSession } from '../services/session-service.js';
 import { findOrCreateProfile, ProfileConflictError } from '../services/user-profile-service.js';
 
@@ -11,17 +12,20 @@ function rememberToken(req, res, token) {
 const requireVerifiedUser = async (req, res, next) => {
   const token = await readSession(req);
   if (!token) {
+    logSecurityEvent('access.denied', req, { reason: 'not_logged_in' });
     return res.status(401).json({ error: 'Please log in.' });
   }
+  rememberToken(req, res, token);
   if (!token.email_verified) {
+    logSecurityEvent('access.denied', req, { reason: 'email_not_verified' });
     return res.status(403).json({ error: 'Please verify your email address, then log in again.' });
   }
-  rememberToken(req, res, token);
   try {
     req.currentUser = await findOrCreateProfile(token);
     return next();
   } catch (error) {
     if (error instanceof ProfileConflictError) {
+      logSecurityEvent('access.denied', req, { reason: 'profile_conflict' });
       return res.status(403).json({ error: error.message });
     }
     return next(error);
@@ -31,6 +35,7 @@ const requireVerifiedUser = async (req, res, next) => {
 // Must run after requireVerifiedUser
 const requireAdmin = (req, res, next) => {
   if (!isAdmin(req.currentUser)) {
+    logSecurityEvent('access.denied', req, { reason: 'not_admin' });
     return res.status(403).json({ error: 'Administrator access only.' });
   }
   return next();
