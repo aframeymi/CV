@@ -4,6 +4,7 @@ import prisma from '../prismaClient.js';
 import cookieParser from 'cookie-parser';
 import router from './routes/index.js';
 import middleware from './middleware/index.js';
+import { trustedProxyHops } from './config/proxy.js';
 import { checkCsrfToken, provideCsrfToken, requireCsrfToken } from './middleware/csrf-protection.js';
 import { handleError, notFound } from './middleware/error-handler.js';
 import { receiveImage } from './middleware/image-upload.js';
@@ -19,8 +20,8 @@ import { checkForm, newReportForm, pageQuery, reportChangesForm } from './valida
 
 const app = express();
 
-// Render terminates HTTPS at its proxy, so trust its X-Forwarded-Proto header for req.secure
-app.set('trust proxy', 1);
+// Render terminates HTTPS at its proxies, so trust their X-Forwarded headers for req.secure and req.ip
+app.set('trust proxy', trustedProxyHops());
 
 // First, so that every response carries the headers, including static files and errors
 app.use(securityHeaders);
