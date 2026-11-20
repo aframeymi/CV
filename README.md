@@ -7,6 +7,7 @@ This README is primarily for developers who want to run, test, or contribute to 
 ## Contents
 
 - [Features](#features)
+- [Project status and known limitations](#project-status-and-known-limitations)
 - [Technology stack](#technology-stack)
 - [Prerequisites](#prerequisites)
 - [Quick start](#quick-start)
@@ -28,9 +29,31 @@ This README is primarily for developers who want to run, test, or contribute to 
 - Image uploads handled with Multer and served from the public uploads directory.
 - Administrative statistics, including counts by status, top reporters, and busiest neighbourhoods.
 
+## Project status and known limitations
+
+Community Voice is a student project under active development. The core workflow works: registering, logging in, submitting reports with an image, tracking them, editing and deleting your own reports, and the statistics. The following are known gaps.
+
+**Not built yet.** These parts are visible in the application but are placeholders:
+
+1. **Report status cannot be changed.** Every report stays `OPEN`. No page changes the status, and the tracking page does not show it. The Received, In Process, and Processed tracker at the top of that page is decorative.
+2. **Fixed texts on the tracking page.** "Your report was successfully submitted. You received 50 bonus points." and "234 more similar reports in your area." always appear. Bonus points do not exist.
+3. **Fixed numbers on the home page.** The three report counts are not read from the database.
+4. **Profile page.** The name, account type, and statistics are fixed text, and the settings form does nothing.
+5. **Pages that do not exist yet.** The **Setting** link in the profile menu goes to `/settings`, and the feedback form on the home page posts to `/feedback`. Both show the 404 page.
+6. **Language choice.** The language selected when registering or on the profile page is ignored.
+7. **Categories.** Categories exist in the database, but a report cannot be given one yet.
+
+**Technical limitations:**
+
+8. **Uploaded images on Render.** Images are stored on the server's disk, which a redeploy can clear. Object storage would fix this (T-45 in the [threat model](docs/security/threat-model.md)).
+9. **Browser tests.** The Playwright tests are out of date and will be rewritten. The Jest tests are current and run on every pull request.
+10. **One Firebase project.** Local development and the live site share one Firebase project, so accounts created while testing locally also exist on the live site.
+
+Security limitations and accepted risks are listed in the [threat model](docs/security/threat-model.md).
+
 ## Technology stack
 
-- **Runtime:** Node.js 22 or later
+- **Runtime:** Node.js 22
 - **Server:** Express 5
 - **Templates:** EJS
 - **Database:** PostgreSQL
@@ -46,7 +69,7 @@ This README is primarily for developers who want to run, test, or contribute to 
 
 Install or obtain the following before starting:
 
-- Node.js 22 or later
+- Node.js 22
 - npm 9 or later
 - Git
 - A PostgreSQL database, either local or hosted, such as Neon
@@ -80,7 +103,9 @@ PORT=5000
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-``` Never place a real credential in the README or commit it to Git.
+```
+
+Never place a real credential in the README or commit it to Git.
 
 ### 3. Prepare and seed the database
 
@@ -101,31 +126,51 @@ npm run dev
 
 Open `http://localhost:5000` in a browser.
 
-> **Important:** Before submission or deployment, confirm that the commands above match the actual paths and scripts in `package.json` and the repository.
-
 ## Documentation
 
 - [Conceptual documentation](docs/conceptual-documentation.md) — purpose, users, architecture, workflows, and database design.
 - [Procedural instructions](docs/procedural-instructions.md) — setup, tutorial, Hello World, testing, database inspection, and troubleshooting.
 - [Contributors guide](CONTRIBUTING.md) — branches, coding, database changes, testing, and pull requests.
+- [Security overview](docs/security/README.md) — how the application is protected, topic by topic, with links to the code and tests.
+- [Threat model](docs/security/threat-model.md) — assets, threats by layer, and the status of each threat.
+- [ZAP baseline scan](docs/security/zap-baseline.md) — results of scanning the running application.
 
 ## Project structure
 
 ```text
 .
+├── .github/
+│   ├── workflows/          # CI and CodeQL checks for every pull request
+│   └── dependabot.yml      # Weekly dependency updates
+├── docs/                   # Conceptual and procedural documentation
+│   └── security/           # Security overview, threat model, ZAP report
 ├── prisma/
 │   ├── schema.prisma       # Database models and relations
-│   └── seed.js             # Development data
-├── public/                 # Static assets and uploaded files
+│   ├── migrations/         # Database changes, applied in order
+│   ├── seed.js             # Reference data, and demo data with --demo
+│   └── seeds/              # The data the seed adds, and when demo data is allowed
+├── public/                 # Stylesheet, browser scripts, images, and uploaded photos
+├── src/
+│   ├── server.js           # Loads .env and starts the server
+│   ├── app.js              # Express setup, middleware order, and page routes
+│   ├── config/             # Firebase Admin SDK and trusted proxy settings
+│   ├── controllers/        # Login, logout, registration, and password reset
+│   ├── middleware/         # Security headers, CSRF, rate limits, sessions, uploads, errors
+│   ├── policies/           # Who may do what: roles and report changes
+│   ├── routes/             # Account routes under /api
+│   ├── services/           # Firebase, sessions, profiles, images, reports, logging
+│   ├── utils/              # Small helpers, such as JSON for inline scripts
+│   └── validation/         # The rules every form must meet
+├── tests/
+│   ├── Jest/               # Unit and integration tests, with fakes for Firebase and the database
+│   └── E2E/                # Playwright browser tests (out of date)
 ├── views/                  # EJS page templates
-├── routes/                 # HTTP routes
-├── controllers/            # Authentication and user operations
-├── middleware/             # Authentication and request middleware
-├── app.js                  # Express application setup and routes
+│   └── includes/           # Shared head, navigation bar, and CSRF field
 ├── prismaClient.js         # Shared Prisma client
-├── firebase.js             # Firebase client/admin configuration
-├── package.json            # Scripts and dependencies
-└── README.md               # Project documentation
+├── .env.example            # Every setting the application needs, without values
+├── eslint.config.js        # Lint rules, including security rules
+├── jest.config.js          # Test setup
+└── package.json            # Scripts and dependencies
 ```
 
 ## Testing
