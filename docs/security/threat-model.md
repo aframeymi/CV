@@ -1,6 +1,6 @@
 # Threat Model: Community Voice
 
-This document records what the application must protect, who could attack it, how, and what is being done about each threat. It describes the application **as it is now**, so most threats are still marked open. The status column is updated as each fix lands.
+This document records what the application must protect, who could attack it, how, and what is being done about each threat. The [security overview](README.md) explains the protections by topic. It describes the application **as it is now**, so most threats are still marked open. The status column is updated as each fix lands.
 
 ## Contents
 
@@ -276,5 +276,5 @@ These could not be confirmed from the repository, because they are settings in e
 - [ ] On Render, `req.ip` is the visitor's own address and not that of a proxy. The rate limits count per address, so if every request seemed to come from one proxy, all visitors would share one limit (T-11, T-16).
 - [ ] `CSRF_SECRET` is set on Render to its own random value, different from the one in the local `.env` (T-30).
 - [x] GitHub secret scanning and push protection are enabled for the repository (T-41).
-- [ ] Branch protection on `main` requires pull requests, requires the CI and CodeQL checks to pass, and blocks force pushes (T-42).
+- [x] Branch protection on `main` requires pull requests, requires the CI and CodeQL checks to pass, and blocks force pushes (T-42). **Yes**: the ruleset "Protect main" is active, with the five checks and the CodeQL results required.
 - [ ] Render runs Node 22 or later, as `package.json` requires. `firebase-admin` 14 does not support older versions.

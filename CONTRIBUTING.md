@@ -4,7 +4,7 @@ This guide is for developers and students who want to modify, test, or review Co
 
 ## Before you start
 
-1. Read the [README](README.md), [procedural instructions](docs/procedural-instructions.md), and [conceptual documentation](docs/conceptual-documentation.md).
+1. Read the [README](README.md), [procedural instructions](docs/procedural-instructions.md), [conceptual documentation](docs/conceptual-documentation.md), and [security overview](docs/security/README.md).
 2. Check existing issues and pull requests to avoid duplicating work.
 3. For a significant change, describe the proposed approach before implementation.
 4. Never request, commit, or share passwords, database credentials, Firebase service-account data, or other secrets.
@@ -24,18 +24,18 @@ npm run prisma:seed:demo   # development database only
 npm run dev
 ```
 
-Create a local `.env` file for credentials and keep it untracked.
+Create a local `.env` file from `.env.example`, including your own `CSRF_SECRET`, and keep it untracked.
 
 ## Contribution workflow
 
 1. Create or select an issue describing the problem or feature.
-2. Create a focused branch from the current development branch.
+2. Create a focused branch from `main`.
 3. Implement the change.
 4. Run the relevant automated and manual tests.
 5. Update documentation if behaviour, setup, routes, database models, or testing changes.
 6. Push the branch and open a pull request.
 7. Respond to review comments.
-8. Merge only after the required checks pass.
+8. Merge only after the required checks pass. Branch protection enforces this: `main` accepts changes only through pull requests whose Tests, Lint, Dependency audit, Secret scan, and CodeQL checks pass.
 
 ## Branches and commits
 
@@ -58,11 +58,14 @@ Keep unrelated refactoring out of feature commits where possible. Small commits 
 - Follow the existing JavaScript module style.
 - Prefer clear names over abbreviated names.
 - Keep route handling, authentication, database access, and presentation responsibilities separate.
-- Validate required input at the boundary of the application.
-- Return an appropriate HTTP status and a useful error message for failures.
+- Validate input at the boundary of the application with the rules in `src/validation/forms.js`, never only in the browser.
+- Return an appropriate HTTP status and a useful error message for the user's own mistakes. For unexpected errors, call `next(error)`: the central error handler logs them and shows only an error ID.
 - Preserve existing authentication and authorisation checks when changing routes.
 - Use Prisma relations and schema constraints rather than duplicating database logic.
-- Avoid logging passwords, tokens, service-account data, or unnecessary personal information.
+- Record security-relevant actions with `logSecurityEvent`. Never log passwords, tokens, cookies, form contents, email addresses, or service-account data.
+- Put every form that sends a POST through the CSRF protection: include `<%- include('includes/csrf-field') %>` in the form.
+- Keep scripts in `public/*.js` and styles in `public/style.css`. The Content Security Policy blocks inline scripts, `style` attributes, and `on...=` handlers, and a test fails if a page contains them.
+- Keep secrets in environment variables only, with a different value for each environment.
 - Keep user-facing text clear and accessible.
 - Validate uploaded file types, file names, and file sizes before accepting public uploads.
 
@@ -87,8 +90,13 @@ Before opening a pull request, run the checks relevant to your change:
 
 ```bash
 npm test
+npm run lint
 npx playwright test
 ```
+
+`npm run lint` fails on any warning. If a security rule flags safe code, mark only that line with `// eslint-disable-next-line <rule> -- <reason>`, so the reason is reviewed with the change.
+
+For a security change, add a test that fails without the change, and check it by undoing the change once.
 
 For a report feature, manually test registration, authentication, report creation, tracking, editing, deletion permissions, neighbourhood validation, and image upload behaviour. For a database change, verify both migration and seed commands.
 
@@ -134,3 +142,5 @@ Before requesting review, confirm:
 - [ ] Error cases have been considered.
 - [ ] Documentation is updated.
 - [ ] No secrets or generated private files are committed.
+- [ ] New forms include the CSRF field, and new pages have no inline scripts or styles.
+- [ ] The threat model is updated if the change adds, fixes, or accepts a threat.
