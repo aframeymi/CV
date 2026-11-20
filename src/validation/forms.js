@@ -2,6 +2,10 @@
 // Browsers can skip the checks in the HTML, so these are the ones that count.
 import { z } from 'zod';
 
+// Length is what makes a password hard to guess. Rules about symbols or digits mostly lead to
+// predictable passwords, so there are none (NIST SP 800-63B).
+export const MIN_NEW_PASSWORD_LENGTH = 12;
+
 export const MAX_LENGTH = {
   title: 120,
   description: 2000,
@@ -35,6 +39,12 @@ const password = z
   .min(1, 'Please enter a password.')
   .max(MAX_LENGTH.password, `Passwords can be at most ${MAX_LENGTH.password} characters.`);
 
+// Only new passwords must be long: accounts created before the rule can still log in
+const newPassword = password.min(
+  MIN_NEW_PASSWORD_LENGTH,
+  `Please choose a password with at least ${MIN_NEW_PASSWORD_LENGTH} characters.`
+);
+
 const recordId = (label) => z.string({ error: `Please choose ${label}.` }).regex(RECORD_ID, `Please choose ${label}.`);
 
 const reportChanges = {
@@ -58,7 +68,7 @@ export const registrationForm = z
     name: requiredText('name', MAX_LENGTH.name),
     surname: requiredText('surname', MAX_LENGTH.name),
     email: emailAddress,
-    password,
+    password: newPassword,
     confirm_password: z.string({ error: 'Please confirm your password.' }),
   })
   .refine((form) => form.password === form.confirm_password, {

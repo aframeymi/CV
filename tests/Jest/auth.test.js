@@ -232,6 +232,14 @@ describe('POST /api/register', () => {
     expect(signUpWithPassword).not.toHaveBeenCalled();
   });
 
+  it('refuses a password shorter than 12 characters before contacting Firebase', async () => {
+    const response = await postForm('/api/register', { ...form, password: 'too short', confirm_password: 'too short' });
+
+    expect(response.status).toBe(422);
+    expect(response.text).toContain('at least 12 characters');
+    expect(signUpWithPassword).not.toHaveBeenCalled();
+  });
+
   it('asks for a name and surname before contacting Firebase', async () => {
     const response = await postForm('/api/register', { ...form, surname: '' });
 
@@ -242,7 +250,7 @@ describe('POST /api/register', () => {
 
   it.each([
     ['EMAIL_EXISTS', 409, 'already exists'],
-    ['WEAK_PASSWORD', 422, 'at least 6 characters'],
+    ['WEAK_PASSWORD', 422, 'at least 12 characters'],
     ['INVALID_EMAIL', 422, 'valid email address'],
     ['TOO_MANY_ATTEMPTS_TRY_LATER', 429, 'Too many attempts'],
   ])('explains %s on the registration page', async (code, status, message) => {

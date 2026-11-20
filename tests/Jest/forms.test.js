@@ -102,9 +102,27 @@ describe('registrationForm', () => {
   });
 });
 
+describe('new passwords', () => {
+  function register(password) {
+    return checkForm(registrationForm, { ...registration, password, confirm_password: password });
+  }
+
+  it('accepts 12 characters with no symbols or digits', () => {
+    expect(register('abcdefghijkl').problem).toBeUndefined();
+  });
+
+  it('refuses 11 characters', () => {
+    expect(register('abcdefghijk').problem).toBe('Please choose a password with at least 12 characters.');
+  });
+});
+
 describe('loginForm', () => {
   it('requires a password', () => {
     expect(checkForm(loginForm, { email: 'ada@example.org' }).problem).toBe('Please enter a password.');
+  });
+
+  it('still accepts a short password, so accounts created before the 12-character rule can log in', () => {
+    expect(checkForm(loginForm, { email: 'ada@example.org', password: 'short' }).problem).toBeUndefined();
   });
 });
 

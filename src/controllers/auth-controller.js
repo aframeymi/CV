@@ -8,7 +8,13 @@ import {
 } from '../services/firebase-identity.js';
 import { endSession, startSession } from '../services/session-service.js';
 import { findOrCreateProfile, ProfileConflictError } from '../services/user-profile-service.js';
-import { checkForm, loginForm, passwordResetForm, registrationForm } from '../validation/forms.js';
+import {
+  checkForm,
+  loginForm,
+  MIN_NEW_PASSWORD_LENGTH,
+  passwordResetForm,
+  registrationForm,
+} from '../validation/forms.js';
 
 // The same message for a wrong email and a wrong password, so the form does not reveal which accounts exist
 const LOGIN_FAILED = 'Incorrect email or password.';
@@ -28,7 +34,10 @@ const LOGIN_FAILURES = {
 
 const REGISTRATION_FAILURES = {
   EMAIL_EXISTS: { status: 409, message: 'An account with this email address already exists. Try signing in.' },
-  WEAK_PASSWORD: { status: 422, message: 'Please choose a password with at least 6 characters.' },
+  WEAK_PASSWORD: {
+    status: 422,
+    message: `Please choose a password with at least ${MIN_NEW_PASSWORD_LENGTH} characters.`,
+  },
   INVALID_EMAIL: { status: 422, message: 'Please enter a valid email address.' },
   TOO_MANY_ATTEMPTS_TRY_LATER: { status: 429, message: TOO_MANY_ATTEMPTS },
 };
