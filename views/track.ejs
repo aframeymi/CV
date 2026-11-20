@@ -76,6 +76,13 @@
         </li>
     <% }); %>
     </ul>
+
+    <%# Page links: page 1 holds the newest reports %>
+    <nav class="pagination" aria-label="Report pages">
+        <% if (page > 1) { %><a href="/track?page=<%= page - 1 %>">Newer reports</a><% } %>
+        <span>Page <%= page %> of <%= pageCount %></span>
+        <% if (page < pageCount) { %><a href="/track?page=<%= page + 1 %>">Older reports</a><% } %>
+    </nav>
 </div>
 <div class="simloc">
     <img src="/map.png" alt="Map" width="40%">

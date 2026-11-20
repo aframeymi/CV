@@ -8,7 +8,8 @@ import { receiveImage } from './middleware/image-upload.js';
 import { deleteImage, saveImage, UnsupportedImageError } from './services/image-storage.js';
 import { loadReportForModification } from './middleware/report-access.js';
 import { findTopReporters, getPublicReportStatistics } from './services/report-statistics.js';
-import { checkForm, newReportForm, reportChangesForm } from './validation/forms.js';
+import { findReportPage } from './services/report-listing.js';
+import { checkForm, newReportForm, pageQuery, reportChangesForm } from './validation/forms.js';
 
 const app = express();
 
@@ -107,21 +108,22 @@ function createReportWithHistory({ title, description, neighborhoodId, author, i
   });
 }
 
-// List all reports with author & location
-app.get('/track', async (req, res) => {
-  try {
-    const reports = await prisma.report.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: {
-        author: { select: { firstName: true, lastName: true, email: true } },
-        neighborhood: { select: { name: true, city: { select: { name: true } } } },
-      },
-    });
+const PAGE_NOT_FOUND = 'Page not found.';
 
-    res.render('track', { title: 'Track', reports });
+app.get('/track', async (req, res) => {
+  const { values, problem } = checkForm(pageQuery, req.query);
+  if (problem) {
+    return res.status(404).send(PAGE_NOT_FOUND);
+  }
+  try {
+    const { reports, pageCount } = await findReportPage(values.page);
+    if (values.page > pageCount) {
+      return res.status(404).send(PAGE_NOT_FOUND);
+    }
+    return res.render('track', { title: 'Track', reports, page: values.page, pageCount });
   } catch (error) {
     console.error('Error fetching reports:', error);
-    res.status(500).send('Could not fetch reports.');
+    return res.status(500).send('Could not fetch reports.');
   }
 });
 

@@ -11,6 +11,7 @@ const prisma = {
     update: jest.fn(),
     delete: jest.fn(),
     groupBy: jest.fn(),
+    count: jest.fn(),
   },
   statusChange: { create: jest.fn() },
   attachment: { create: jest.fn() },

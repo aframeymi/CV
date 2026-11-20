@@ -101,6 +101,11 @@ describe('POST /submit-report', () => {
 });
 
 describe('GET /track', () => {
+  beforeEach(() => {
+    prisma.report.findMany.mockResolvedValue([]);
+    prisma.report.count.mockResolvedValue(0);
+  });
+
   it('escapes HTML in report content', async () => {
     prisma.report.findMany.mockResolvedValue([
       { id: REPORT_ID, title: '<script>alert(1)</script>', description: 'text' },
@@ -123,6 +128,62 @@ describe('GET /track', () => {
 
     expect(response.text).toContain('src="/uploads/photo-id.jpg"');
     expect(response.text).toContain('src="/seo-report.png"');
+  });
+
+  it('loads 20 reports at a time, and only the fields the page shows', async () => {
+    prisma.report.count.mockResolvedValue(45);
+
+    await request(app).get('/track?page=2');
+
+    expect(prisma.report.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: { id: true, title: true, description: true, imageUrl: true },
+        skip: 20,
+        take: 20,
+      })
+    );
+  });
+
+  it('starts at the first page and links to the next one', async () => {
+    prisma.report.count.mockResolvedValue(45);
+
+    const response = await request(app).get('/track');
+
+    expect(prisma.report.findMany).toHaveBeenCalledWith(expect.objectContaining({ skip: 0 }));
+    expect(response.text).toContain('Page 1 of 3');
+    expect(response.text).toContain('href="/track?page=2"');
+    expect(response.text).not.toContain('Newer reports');
+  });
+
+  it('links back from the last page, but not further', async () => {
+    prisma.report.count.mockResolvedValue(45);
+
+    const response = await request(app).get('/track?page=3');
+
+    expect(response.text).toContain('href="/track?page=2"');
+    expect(response.text).not.toContain('Older reports');
+  });
+
+  it('shows an empty first page when there are no reports', async () => {
+    const response = await request(app).get('/track');
+
+    expect(response.status).toBe(200);
+    expect(response.text).toContain('Page 1 of 1');
+  });
+
+  it.each(['0', '-1', 'abc', '1.5'])('returns 404 for the page number %p', async (page) => {
+    const response = await request(app).get(`/track?page=${page}`);
+
+    expect(response.status).toBe(404);
+    expect(prisma.report.findMany).not.toHaveBeenCalled();
+  });
+
+  it('returns 404 for a page after the last one', async () => {
+    prisma.report.count.mockResolvedValue(45);
+
+    const response = await request(app).get('/track?page=4');
+
+    expect(response.status).toBe(404);
   });
 });
 

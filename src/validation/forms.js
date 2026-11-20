@@ -76,6 +76,9 @@ export const registrationForm = z
     path: ['confirm_password'],
   });
 
+// The page number of a list, such as /track?page=2. Without one, the list starts at the first page.
+export const pageQuery = z.object({ page: z.coerce.number().int().min(1).default(1) });
+
 // Returns the cleaned values, or the message of the first rule the input breaks.
 // Fields that a form does not define are dropped, so handlers only ever see known fields.
 export function checkForm(form, input) {
