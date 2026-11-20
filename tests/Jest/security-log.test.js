@@ -222,23 +222,3 @@ describe('changes to reports', () => {
     ]);
   });
 });
-
-describe('the temporary X-Forwarded-For diagnostic', () => {
-  afterEach(() => {
-    delete process.env.LOG_FORWARDED_FOR;
-  });
-
-  it('is off unless LOG_FORWARDED_FOR is true', async () => {
-    await request(app).get('/profile').set('X-Forwarded-For', '198.51.100.1, 10.0.0.2');
-
-    expect(eventsNamed('access.denied')[0]).not.toHaveProperty('forwardedFor');
-  });
-
-  it('adds the whole X-Forwarded-For list while it is on', async () => {
-    process.env.LOG_FORWARDED_FOR = 'true';
-
-    await request(app).get('/profile').set('X-Forwarded-For', '198.51.100.1, 10.0.0.2');
-
-    expect(eventsNamed('access.denied')[0].forwardedFor).toBe('198.51.100.1, 10.0.0.2');
-  });
-});
