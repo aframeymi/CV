@@ -23,7 +23,7 @@ This README is primarily for developers who want to run, test, or contribute to 
 - Local user profiles and role information stored with Prisma and PostgreSQL.
 - Civic reports with a title, description, neighbourhood, and optional image.
 - Report statuses of `OPEN`, `IN_PROGRESS`, and `RESOLVED`.
-- Report tracking, editing, and deletion with author/admin permissions.
+- Report tracking, 20 reports per page, with editing and deletion for the author or an admin.
 - Image uploads handled with Multer and served from the public uploads directory.
 - Administrative statistics, including counts by status, top reporters, and busiest neighbourhoods.
 
@@ -135,6 +135,8 @@ The [threat model](docs/security/threat-model.md) lists the assets, trust bounda
 
 - Never commit `.env`, Firebase service-account JSON, database passwords, or private keys.
 - Use a separate Firebase project and database for development where possible.
+- Every form is checked on the server against the rules in [`src/validation/forms.js`](src/validation/forms.js): required fields, maximum lengths, email format, and ID format. Fields a form does not define are ignored.
+- New passwords need at least 12 characters, with no rules about symbols or digits. Set the Firebase password policy (Authentication → Settings → Password policy) to the same minimum, so passwords set on Firebase's own reset page follow it too.
 - Report images must be JPEG, PNG, or WebP and at most 5 MB. The type is checked from the file content, and files are stored under random names.
 - Use HTTPS in production so authentication cookies and credentials are protected in transit.
 - Review authorisation checks on every route that reads, edits, or deletes user data.
