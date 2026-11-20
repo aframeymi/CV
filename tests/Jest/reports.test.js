@@ -96,6 +96,18 @@ describe('GET /track', () => {
     expect(response.text).not.toContain('<script>alert(1)</script>');
     expect(response.text).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
   });
+
+  it('shows the uploaded photo of a report, and a placeholder for reports without one', async () => {
+    prisma.report.findMany.mockResolvedValue([
+      { id: 'report-1', title: 'With photo', description: 'text', imageUrl: '/uploads/photo-id.jpg' },
+      { id: 'report-2', title: 'Without photo', description: 'text', imageUrl: null },
+    ]);
+
+    const response = await request(app).get('/track');
+
+    expect(response.text).toContain('src="/uploads/photo-id.jpg"');
+    expect(response.text).toContain('src="/seo-report.png"');
+  });
 });
 
 describe('POST /track/:id/delete', () => {
