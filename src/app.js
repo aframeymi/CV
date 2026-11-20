@@ -8,6 +8,7 @@ import { receiveImage } from './middleware/image-upload.js';
 import { deleteImage, saveImage, UnsupportedImageError } from './services/image-storage.js';
 import { loadReportForModification } from './middleware/report-access.js';
 import { findTopReporters, getPublicReportStatistics } from './services/report-statistics.js';
+import { checkForm, newReportForm, reportChangesForm } from './validation/forms.js';
 
 const app = express();
 
@@ -62,10 +63,11 @@ app.get('/report', async (req, res) => {
 
 // New Report Submission. The image is saved only once the rest of the form is valid.
 app.post('/submit-report', middleware.requireVerifiedUser, receiveImage, async (req, res) => {
-  const { title, description, neighborhoodId } = req.body;
-  if (!title || !description || !neighborhoodId) {
-    return res.status(422).send('title, description, and neighborhoodId are required.');
+  const { values, problem } = checkForm(newReportForm, req.body);
+  if (problem) {
+    return res.status(422).send(problem);
   }
+  const { title, description, neighborhoodId } = values;
 
   let image = null;
   try {
@@ -131,16 +133,17 @@ app.get('/track/:id/edit', modifiableReport, (req, res) => {
 });
 
 app.post('/track/:id/edit', modifiableReport, async (req, res) => {
-  const { title, description } = req.body;
+  const { values, problem } = checkForm(reportChangesForm, req.body);
+  if (problem) {
+    return res.status(422).send(problem);
+  }
   try {
-    await prisma.report.update({
-      where: { id: req.report.id },
-      data: { title, description },
-    });
-    res.redirect('/track');
+    // values holds only the title and description, so no other column can be changed through this form
+    await prisma.report.update({ where: { id: req.report.id }, data: values });
+    return res.redirect('/track');
   } catch (err) {
     console.error('Error updating report:', err);
-    res.status(500).send('Internal Server Error');
+    return res.status(500).send('Internal Server Error');
   }
 });
 

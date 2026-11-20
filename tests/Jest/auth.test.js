@@ -101,6 +101,14 @@ describe('POST /api/login', () => {
     expect(response.text).toContain('Too many attempts');
   });
 
+  it('refuses a malformed email address before contacting Firebase', async () => {
+    const response = await postForm('/api/login', { ...credentials, email: 'not-an-email' });
+
+    expect(response.status).toBe(422);
+    expect(response.text).toContain('Please enter a valid email address.');
+    expect(signInWithPassword).not.toHaveBeenCalled();
+  });
+
   it('asks for both fields before contacting Firebase', async () => {
     const response = await postForm('/api/login', { email: credentials.email });
 
@@ -221,6 +229,14 @@ describe('POST /api/register', () => {
     const response = await postForm('/api/register', { ...form, email: '' });
 
     expect(response.status).toBe(422);
+    expect(signUpWithPassword).not.toHaveBeenCalled();
+  });
+
+  it('asks for a name and surname before contacting Firebase', async () => {
+    const response = await postForm('/api/register', { ...form, surname: '' });
+
+    expect(response.status).toBe(422);
+    expect(response.text).toContain('Please enter surname.');
     expect(signUpWithPassword).not.toHaveBeenCalled();
   });
 

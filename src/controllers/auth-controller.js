@@ -8,6 +8,7 @@ import {
 } from '../services/firebase-identity.js';
 import { endSession, startSession } from '../services/session-service.js';
 import { findOrCreateProfile, ProfileConflictError } from '../services/user-profile-service.js';
+import { checkForm, loginForm, passwordResetForm, registrationForm } from '../validation/forms.js';
 
 // The same message for a wrong email and a wrong password, so the form does not reveal which accounts exist
 const LOGIN_FAILED = 'Incorrect email or password.';
@@ -33,12 +34,12 @@ const REGISTRATION_FAILURES = {
 };
 
 export async function logIn(req, res, next) {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return renderSignIn(res, 422, { error: 'Please enter your email address and password.' });
+  const { values, problem } = checkForm(loginForm, req.body);
+  if (problem) {
+    return renderSignIn(res, 422, { error: problem });
   }
   try {
-    const { idToken } = await signInWithPassword(email, password);
+    const { idToken } = await signInWithPassword(values.email, values.password);
     await startSession(req, res, idToken);
     return res.redirect('/');
   } catch (error) {
@@ -61,16 +62,13 @@ export async function logOut(req, res, next) {
 
 // Creates the account and profile, then asks the user to verify their email before signing in
 export async function register(req, res, next) {
-  const { email, password, confirm_password: passwordConfirmation, name, surname } = req.body;
-  if (!email || !password) {
-    return renderSignUp(res, 422, 'Please enter your email address and a password.');
-  }
-  if (password !== passwordConfirmation) {
-    return renderSignUp(res, 422, 'Passwords do not match.');
+  const { values, problem } = checkForm(registrationForm, req.body);
+  if (problem) {
+    return renderSignUp(res, 422, problem);
   }
   try {
-    const account = await signUpWithPassword(email, password);
-    const displayName = [name, surname].filter(Boolean).join(' ');
+    const account = await signUpWithPassword(values.email, values.password);
+    const displayName = `${values.name} ${values.surname}`;
     await nameAccount(account.uid, displayName);
     await sendVerificationEmail(account.idToken);
     await findOrCreateProfile({ uid: account.uid, email: account.email, name: displayName });
@@ -89,12 +87,12 @@ export async function register(req, res, next) {
 
 // The notice is the same whether or not an account exists, so the form does not reveal registered addresses
 export async function requestPasswordReset(req, res, next) {
-  const { email } = req.body;
-  if (!email) {
-    return renderSignIn(res, 422, { error: 'Please enter your email address.' });
+  const { values, problem } = checkForm(passwordResetForm, req.body);
+  if (problem) {
+    return renderSignIn(res, 422, { error: problem });
   }
   try {
-    await sendPasswordResetEmail(email);
+    await sendPasswordResetEmail(values.email);
   } catch (error) {
     if (!(error instanceof FirebaseIdentityError)) {
       return next(error);
@@ -108,9 +106,6 @@ export async function requestPasswordReset(req, res, next) {
 
 // The name is only for display, so a failure here must not stop the registration
 async function nameAccount(uid, displayName) {
-  if (!displayName) {
-    return;
-  }
   try {
     await setDisplayName(uid, displayName);
   } catch (error) {
