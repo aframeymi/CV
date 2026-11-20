@@ -135,7 +135,7 @@ The [threat model](docs/security/threat-model.md) lists the assets, trust bounda
 
 - Never commit `.env`, Firebase service-account JSON, database passwords, or private keys.
 - Use a separate Firebase project and database for development where possible.
-- Validate uploaded file types, file names, and file sizes before deploying publicly.
+- Report images must be JPEG, PNG, or WebP and at most 5 MB. The type is checked from the file content, and files are stored under random names.
 - Use HTTPS in production so authentication cookies and credentials are protected in transit.
 - Review authorisation checks on every route that reads, edits, or deletes user data.
 - Logins are Firebase session cookies: `HttpOnly`, `SameSite=Lax`, `Secure` over HTTPS, valid for one day, checked for revocation on every request, and revoked at logout.
