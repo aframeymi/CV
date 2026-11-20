@@ -30,7 +30,7 @@ This README is primarily for developers who want to run, test, or contribute to 
 
 ## Technology stack
 
-- **Runtime:** Node.js 22 or later
+- **Runtime:** Node.js 22
 - **Server:** Express 5
 - **Templates:** EJS
 - **Database:** PostgreSQL
@@ -46,7 +46,7 @@ This README is primarily for developers who want to run, test, or contribute to 
 
 Install or obtain the following before starting:
 
-- Node.js 22 or later
+- Node.js 22
 - npm 9 or later
 - Git
 - A PostgreSQL database, either local or hosted, such as Neon
@@ -80,7 +80,9 @@ PORT=5000
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-``` Never place a real credential in the README or commit it to Git.
+```
+
+Never place a real credential in the README or commit it to Git.
 
 ### 3. Prepare and seed the database
 
@@ -101,31 +103,51 @@ npm run dev
 
 Open `http://localhost:5000` in a browser.
 
-> **Important:** Before submission or deployment, confirm that the commands above match the actual paths and scripts in `package.json` and the repository.
-
 ## Documentation
 
 - [Conceptual documentation](docs/conceptual-documentation.md) — purpose, users, architecture, workflows, and database design.
 - [Procedural instructions](docs/procedural-instructions.md) — setup, tutorial, Hello World, testing, database inspection, and troubleshooting.
 - [Contributors guide](CONTRIBUTING.md) — branches, coding, database changes, testing, and pull requests.
+- [Security overview](docs/security/README.md) — how the application is protected, topic by topic, with links to the code and tests.
+- [Threat model](docs/security/threat-model.md) — assets, threats by layer, and the status of each threat.
+- [ZAP baseline scan](docs/security/zap-baseline.md) — results of scanning the running application.
 
 ## Project structure
 
 ```text
 .
+├── .github/
+│   ├── workflows/          # CI and CodeQL checks for every pull request
+│   └── dependabot.yml      # Weekly dependency updates
+├── docs/                   # Conceptual and procedural documentation
+│   └── security/           # Security overview, threat model, ZAP report
 ├── prisma/
 │   ├── schema.prisma       # Database models and relations
-│   └── seed.js             # Development data
-├── public/                 # Static assets and uploaded files
+│   ├── migrations/         # Database changes, applied in order
+│   ├── seed.js             # Reference data, and demo data with --demo
+│   └── seeds/              # The data the seed adds, and when demo data is allowed
+├── public/                 # Stylesheet, browser scripts, images, and uploaded photos
+├── src/
+│   ├── server.js           # Loads .env and starts the server
+│   ├── app.js              # Express setup, middleware order, and page routes
+│   ├── config/             # Firebase Admin SDK and trusted proxy settings
+│   ├── controllers/        # Login, logout, registration, and password reset
+│   ├── middleware/         # Security headers, CSRF, rate limits, sessions, uploads, errors
+│   ├── policies/           # Who may do what: roles and report changes
+│   ├── routes/             # Account routes under /api
+│   ├── services/           # Firebase, sessions, profiles, images, reports, logging
+│   ├── utils/              # Small helpers, such as JSON for inline scripts
+│   └── validation/         # The rules every form must meet
+├── tests/
+│   ├── Jest/               # Unit and integration tests, with fakes for Firebase and the database
+│   └── E2E/                # Playwright browser tests (out of date)
 ├── views/                  # EJS page templates
-├── routes/                 # HTTP routes
-├── controllers/            # Authentication and user operations
-├── middleware/             # Authentication and request middleware
-├── app.js                  # Express application setup and routes
+│   └── includes/           # Shared head, navigation bar, and CSRF field
 ├── prismaClient.js         # Shared Prisma client
-├── firebase.js             # Firebase client/admin configuration
-├── package.json            # Scripts and dependencies
-└── README.md               # Project documentation
+├── .env.example            # Every setting the application needs, without values
+├── eslint.config.js        # Lint rules, including security rules
+├── jest.config.js          # Test setup
+└── package.json            # Scripts and dependencies
 ```
 
 ## Testing
