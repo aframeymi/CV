@@ -15,7 +15,7 @@ const prisma = {
   },
   statusChange: { create: jest.fn() },
   attachment: { create: jest.fn() },
-  $queryRawUnsafe: jest.fn(),
+  $queryRaw: jest.fn(),
   // Run the transaction body straight away, using this same fake as the transaction client
   $transaction: (runInTransaction) => runInTransaction(prisma),
 };

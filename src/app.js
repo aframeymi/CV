@@ -9,6 +9,7 @@ import { deleteImage, saveImage, UnsupportedImageError } from './services/image-
 import { loadReportForModification } from './middleware/report-access.js';
 import { findTopReporters, getPublicReportStatistics } from './services/report-statistics.js';
 import { findReportPage } from './services/report-listing.js';
+import { toScriptJson } from './utils/script-json.js';
 import { checkForm, newReportForm, pageQuery, reportChangesForm } from './validation/forms.js';
 
 const app = express();
@@ -55,7 +56,7 @@ app.get('/report', async (req, res) => {
       include: { neighborhoods: true },
       orderBy: { name: 'asc' },
     });
-    res.render('report', { title: 'Report', cities });
+    res.render('report', { title: 'Report', cities, citiesJson: toScriptJson(cities) });
   } catch (e) {
     console.error('Failed to load cities:', e);
     res.status(500).send('Could not load the report form.');
@@ -163,10 +164,12 @@ app.post('/track/:id/delete', modifiableReport, async (req, res) => {
 // Every /admin route requires a logged-in, verified administrator
 const adminOnly = [middleware.requireVerifiedUser, middleware.requireAdmin];
 
-// Admin: Count reports per city and status using a raw SQL query
+// Admin: count reports per city and status.
+// $queryRaw sends any ${value} placed in the query as a parameter, never as SQL text,
+// so adding a filter later cannot open the query to SQL injection.
 app.get('/admin/report-stats', adminOnly, async (req, res) => {
   try {
-    const rows = await prisma.$queryRawUnsafe(`
+    const rows = await prisma.$queryRaw`
       SELECT
         c.name AS city,
         r.status AS status,
@@ -176,7 +179,7 @@ app.get('/admin/report-stats', adminOnly, async (req, res) => {
       JOIN cities c ON c.id = n.city_id
       GROUP BY c.name, r.status
       ORDER BY c.name, r.status;
-    `);
+    `;
     res.json({ rows });
   } catch (e) {
     console.error('report-stats error:', e);

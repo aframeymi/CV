@@ -27,6 +27,16 @@ describe('public pages', () => {
     expect(response.status).toBe(200);
     expect(response.text).toContain('Berlin');
   });
+
+  it('cannot be made to end its inline script by a city name', async () => {
+    const name = '</script><script>alert(1)</script>';
+    prisma.city.findMany.mockResolvedValue([{ id: 'c1', name, neighborhoods: [] }]);
+
+    const response = await request(app).get('/report');
+
+    expect(response.text).not.toContain('</script><script>alert(1)');
+    expect(response.text).toContain('\\u003c/script>\\u003cscript>alert(1)\\u003c/script>');
+  });
 });
 
 describe('GET /profile', () => {
