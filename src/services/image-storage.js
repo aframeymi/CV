@@ -34,12 +34,15 @@ export async function saveImage(file) {
     throw new UnsupportedImageError();
   }
   const fileName = `${randomUUID()}.${type.extension}`;
-  // 'wx' fails instead of overwriting, in the unlikely case that the random name already exists
+  // 'wx' fails instead of overwriting, in the unlikely case that the random name already exists.
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- the name is a UUID chosen by the server
   await writeFile(path.join(UPLOAD_DIRECTORY, fileName), file.buffer, { flag: 'wx' });
   return { fileName, url: `${PUBLIC_UPLOAD_PATH}/${fileName}`, mimeType: type.mimeType, sizeBytes: file.size };
 }
 
+// Only for images returned by saveImage, whose file name the server chose
 export async function deleteImage(image) {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- see above
   await unlink(path.join(UPLOAD_DIRECTORY, image.fileName));
 }
 
