@@ -13,6 +13,7 @@ This README is primarily for developers who want to run, test, or contribute to 
 - [Documentation](#documentation)
 - [Project structure](#project-structure)
 - [Testing](#testing)
+- [Code analysis tools](#code-analysis-tools)
 - [Configuration and security](#configuration-and-security)
 - [Accounts and roles](#accounts-and-roles)
 - [Deployment](#deployment)
@@ -29,7 +30,7 @@ This README is primarily for developers who want to run, test, or contribute to 
 
 ## Technology stack
 
-- **Runtime:** Node.js 18 or later
+- **Runtime:** Node.js 22 or later
 - **Server:** Express 4
 - **Templates:** EJS
 - **Database:** PostgreSQL
@@ -45,7 +46,7 @@ This README is primarily for developers who want to run, test, or contribute to 
 
 Install or obtain the following before starting:
 
-- Node.js 18 or later
+- Node.js 22 or later
 - npm 9 or later
 - Git
 - A PostgreSQL database, either local or hosted, such as Neon
@@ -133,16 +134,33 @@ Run the configured automated tests with:
 
 ```bash
 npm test
+npm run lint
 npx playwright test
 ```
 
+`npm test` runs the Jest tests, which replace Firebase and the database with fakes, so they need no secrets or network. The Playwright tests are out of date and will be rewritten.
+
 See the [procedural instructions](docs/procedural-instructions.md) for testing procedures and the [contributors guide](CONTRIBUTING.md) for testing requirements.
+
+## Code analysis tools
+
+These run on every pull request and every change to `main` ([`.github/workflows`](.github/workflows)). Branch protection only lets a pull request into `main` once they pass.
+
+| Tool | What it checks | Where to run or see it |
+|---|---|---|
+| Jest and SuperTest | Behaviour of every route, security rule, and service | `npm test`, CI job "Tests" |
+| ESLint with `eslint-plugin-security` | Common bugs, and patterns that often lead to vulnerabilities, such as dynamic file paths or unsafe regular expressions. Warnings fail the check | `npm run lint`, CI job "Lint", rules in [`eslint.config.js`](eslint.config.js) |
+| `npm audit` | Known vulnerabilities in dependencies. Fails on critical ones | `npm audit --omit=dev`, CI job "Dependency audit" |
+| gitleaks | Secrets such as keys or passwords anywhere in the Git history | CI job "Secret scan" |
+| CodeQL | Vulnerabilities found by following data through the code, such as injection or path traversal | CI workflow "CodeQL", results under **Security > Code scanning** |
+| Dependabot | Newer versions of npm packages and GitHub Actions, as weekly pull requests | [`.github/dependabot.yml`](.github/dependabot.yml), **Pull requests** |
+| GitHub secret scanning and push protection | Known kinds of secrets, refused before they are pushed | Repository settings, **Security** |
 
 ## Configuration and security
 
 The [threat model](docs/security/threat-model.md) lists the assets, trust boundaries, and known threats, with the current status of each.
 
-- Never commit `.env`, Firebase service-account JSON, database passwords, or private keys.
+- Never commit `.env`, Firebase service-account JSON, database passwords, or private keys. Push protection and gitleaks check for them.
 - Use a separate Firebase project and database for development where possible.
 - Every form is checked on the server against the rules in [`src/validation/forms.js`](src/validation/forms.js): required fields, maximum lengths, email format, and ID format. Fields a form does not define are ignored.
 - New passwords need at least 12 characters, with no rules about symbols or digits. Set the Firebase password policy (Authentication → Settings → Password policy) to the same minimum, so passwords set on Firebase's own reset page follow it too.
