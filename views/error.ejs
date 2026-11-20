@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <%# Shared page head (stylesheet and page title) %>
+    <%- include('includes/head') %>
+
+</head>
+<body>
+
+    <%# Shared navigation bar %>
+    <%- include('includes/navbar') %>
+
+    <%# Error page: a short message only. Details are in the server log, under the error ID. %>
+    <main class="error-page">
+        <h2><%= message %></h2>
+        <% if (typeof errorId !== 'undefined' && errorId) { %>
+            <p>If this keeps happening, please mention error ID <strong><%= errorId %></strong>.</p>
+        <% } %>
+        <p><a href="/">Back to the home page</a></p>
+    </main>
+
+    <%# Script with the profile menu toggle %>
+    <script src="/script.js"></script>
+</body>
+</html>

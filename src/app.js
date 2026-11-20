@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import router from './routes/index.js';
 import middleware from './middleware/index.js';
 import { checkCsrfToken, provideCsrfToken, requireCsrfToken } from './middleware/csrf-protection.js';
+import { handleError, notFound } from './middleware/error-handler.js';
 import { receiveImage } from './middleware/image-upload.js';
 import { limitReportSubmissions } from './middleware/rate-limits.js';
 import { securityHeaders } from './middleware/security-headers.js';
@@ -61,16 +62,15 @@ app.get('/profile', middleware.requireVerifiedUser, (req, res) => {
 });
 
 // Loading cities & neighbourhoods 
-app.get('/report', async (req, res) => {
+app.get('/report', async (req, res, next) => {
   try {
     const cities = await prisma.city.findMany({
       include: { neighborhoods: true },
       orderBy: { name: 'asc' },
     });
-    res.render('report', { title: 'Report', cities, citiesJson: toScriptJson(cities) });
-  } catch (e) {
-    console.error('Failed to load cities:', e);
-    res.status(500).send('Could not load the report form.');
+    return res.render('report', { title: 'Report', cities, citiesJson: toScriptJson(cities) });
+  } catch (error) {
+    return next(error);
   }
 });
 
@@ -80,7 +80,7 @@ const limitReports = limitReportSubmissions((req, res) =>
 
 // New Report Submission. The image is saved only once the rest of the form is valid.
 // The limit comes before the image is read, so a client over the limit cannot fill the memory either.
-app.post('/submit-report', middleware.requireVerifiedUser, limitReports, receiveImage, checkCsrfToken, async (req, res) => {
+app.post('/submit-report', middleware.requireVerifiedUser, limitReports, receiveImage, checkCsrfToken, async (req, res, next) => {
   const { values, problem } = checkForm(newReportForm, req.body);
   if (problem) {
     return res.status(422).send(problem);
@@ -100,11 +100,10 @@ app.post('/submit-report', middleware.requireVerifiedUser, limitReports, receive
     if (error instanceof UnsupportedImageError) {
       return res.status(415).send(error.message);
     }
-    console.error('Error submitting report:', error);
     if (image) {
       await deleteImage(image).catch((cleanupError) => console.error('Could not remove image:', cleanupError.message));
     }
-    return res.status(500).send('There was a problem submitting your report.');
+    return next(error);
   }
 });
 
@@ -125,22 +124,19 @@ function createReportWithHistory({ title, description, neighborhoodId, author, i
   });
 }
 
-const PAGE_NOT_FOUND = 'Page not found.';
-
-app.get('/track', async (req, res) => {
+app.get('/track', async (req, res, next) => {
   const { values, problem } = checkForm(pageQuery, req.query);
   if (problem) {
-    return res.status(404).send(PAGE_NOT_FOUND);
+    return notFound(req, res);
   }
   try {
     const { reports, pageCount } = await findReportPage(values.page);
     if (values.page > pageCount) {
-      return res.status(404).send(PAGE_NOT_FOUND);
+      return notFound(req, res);
     }
     return res.render('track', { title: 'Track', reports, page: values.page, pageCount });
   } catch (error) {
-    console.error('Error fetching reports:', error);
-    return res.status(500).send('Could not fetch reports.');
+    return next(error);
   }
 });
 
@@ -151,7 +147,7 @@ app.get('/track/:id/edit', modifiableReport, (req, res) => {
   res.render('edit', { title: 'Edit Report', report: req.report });
 });
 
-app.post('/track/:id/edit', modifiableReport, async (req, res) => {
+app.post('/track/:id/edit', modifiableReport, async (req, res, next) => {
   const { values, problem } = checkForm(reportChangesForm, req.body);
   if (problem) {
     return res.status(422).send(problem);
@@ -160,22 +156,19 @@ app.post('/track/:id/edit', modifiableReport, async (req, res) => {
     // values holds only the title and description, so no other column can be changed through this form
     await prisma.report.update({ where: { id: req.report.id }, data: values });
     return res.redirect('/track');
-  } catch (err) {
-    console.error('Error updating report:', err);
-    return res.status(500).send('Internal Server Error');
+  } catch (error) {
+    return next(error);
   }
 });
 
-app.post('/track/:id/delete', modifiableReport, async (req, res) => {
+app.post('/track/:id/delete', modifiableReport, async (req, res, next) => {
   try {
     await prisma.report.delete({ where: { id: req.report.id } });
-    res.redirect('/track');
-  } catch (err) {
-    console.error('Error deleting report:', err);
-    res.status(500).send('Internal Server Error');
+    return res.redirect('/track');
+  } catch (error) {
+    return next(error);
   }
 });
-
 
 // Every /admin route requires a logged-in, verified administrator
 const adminOnly = [middleware.requireVerifiedUser, middleware.requireAdmin];
@@ -183,7 +176,7 @@ const adminOnly = [middleware.requireVerifiedUser, middleware.requireAdmin];
 // Admin: count reports per city and status.
 // $queryRaw sends any ${value} placed in the query as a parameter, never as SQL text,
 // so adding a filter later cannot open the query to SQL injection.
-app.get('/admin/report-stats', adminOnly, async (req, res) => {
+app.get('/admin/report-stats', adminOnly, async (req, res, next) => {
   try {
     const rows = await prisma.$queryRaw`
       SELECT
@@ -196,35 +189,36 @@ app.get('/admin/report-stats', adminOnly, async (req, res) => {
       GROUP BY c.name, r.status
       ORDER BY c.name, r.status;
     `;
-    res.json({ rows });
-  } catch (e) {
-    console.error('report-stats error:', e);
-    res.status(500).send('Could not fetch report statistics');
+    return res.json({ rows });
+  } catch (error) {
+    return next(error);
   }
 });
 
 // Admin: the public totals plus the top reporters, who are identified by name and email
-app.get('/admin/analytics', adminOnly, async (req, res) => {
+app.get('/admin/analytics', adminOnly, async (req, res, next) => {
   try {
     const [publicStatistics, topReporters] = await Promise.all([
       getPublicReportStatistics(),
       findTopReporters(),
     ]);
-    res.json({ ...publicStatistics, topReporters });
-  } catch (e) {
-    console.error('analytics error:', e);
-    res.status(500).send('Could not fetch analytics');
+    return res.json({ ...publicStatistics, topReporters });
+  } catch (error) {
+    return next(error);
   }
 });
 
 // Public: report totals for the graph page, without any personal data
-app.get('/api/stats', async (req, res) => {
+app.get('/api/stats', async (req, res, next) => {
   try {
-    res.json(await getPublicReportStatistics());
-  } catch (e) {
-    console.error('stats error:', e);
-    res.status(500).json({ error: 'Could not fetch statistics' });
+    return res.json(await getPublicReportStatistics());
+  } catch (error) {
+    return next(error);
   }
 });
+
+// Last, so they only see requests that no route above answered
+app.use(notFound);
+app.use(handleError);
 
 export default app;

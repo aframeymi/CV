@@ -15,8 +15,18 @@ jest.mock('../../src/services/firebase-identity.js', () => ({
 }));
 
 const UPLOAD_DIRECTORY = path.join(process.cwd(), 'public', 'uploads');
+const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const credentials = { email: 'bob@example.com', password: 'correct horse' };
 const ownReport = { id: REPORT_ID, authorId: citizen.id, title: 'Mine', description: 'text' };
+
+// A file can disappear between listing and reading, when another test file removes its own upload
+function holdsContent(fileName, content) {
+  try {
+    return fs.readFileSync(path.join(UPLOAD_DIRECTORY, fileName)).equals(content);
+  } catch {
+    return false;
+  }
+}
 
 function forgedPost(url, form = {}, cookies = [SESSION_COOKIE]) {
   return request(app).post(url).set('Cookie', cookies).type('form').send(form);
@@ -104,14 +114,15 @@ describe('the report form, which is multipart', () => {
     return token ? call.field('_csrf', token) : call;
   }
 
+  // Other test files upload in parallel, so look for this test's own image rather than any new file
   it('is refused without a token, and stores nothing', async () => {
-    const filesBefore = fs.readdirSync(UPLOAD_DIRECTORY);
+    const image = Buffer.concat([PNG_SIGNATURE, Buffer.from(`csrf test image ${Date.now()}`)]);
 
-    const response = await submitReport([SESSION_COOKIE]).attach('image', Buffer.from([0x89, 0x50, 0x4e, 0x47]), 'a.png');
+    const response = await submitReport([SESSION_COOKIE]).attach('image', image, 'a.png');
 
     expect(response.status).toBe(403);
     expect(prisma.report.create).not.toHaveBeenCalled();
-    expect(fs.readdirSync(UPLOAD_DIRECTORY)).toEqual(filesBefore);
+    expect(fs.readdirSync(UPLOAD_DIRECTORY).some((name) => holdsContent(name, image))).toBe(false);
   });
 
   it('is accepted with the token from the page', async () => {
