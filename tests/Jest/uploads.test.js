@@ -7,6 +7,7 @@ import app from '../../src/app.js';
 import prisma from '../../prismaClient.js';
 import { SESSION_COOKIE, citizen, logInAs } from './helpers/auth.js';
 import { NEIGHBORHOOD_ID, REPORT_ID } from './helpers/ids.js';
+import { csrfCredentials, postForm } from './helpers/csrf.js';
 
 const UPLOAD_DIRECTORY = path.join(process.cwd(), 'public', 'uploads');
 const FIVE_MB = 5 * 1024 * 1024;
@@ -27,10 +28,19 @@ function newFiles() {
   return uploadedFiles().filter((name) => !filesBefore.includes(name));
 }
 
-function submitWithImage(content, fileName, contentType, form = validForm) {
-  const call = request(app).post('/submit-report').set('Cookie', SESSION_COOKIE);
+// Sends the report form as a browser does: multipart, with the CSRF token as one of its fields
+async function submitWithImages(images, { form = validForm, sessionCookie = SESSION_COOKIE } = {}) {
+  const { token, cookies } = await csrfCredentials(sessionCookie);
+  const call = request(app).post('/submit-report').set('Cookie', cookies).field('_csrf', token);
   Object.entries(form).forEach(([field, value]) => call.field(field, value));
-  return call.attach('image', content, { filename: fileName, contentType });
+  images.forEach(({ content, fileName, contentType }) =>
+    call.attach('image', content, { filename: fileName, contentType })
+  );
+  return call;
+}
+
+function submitWithImage(content, fileName, contentType, form = validForm) {
+  return submitWithImages([{ content, fileName, contentType }], { form });
 }
 
 beforeEach(() => {
@@ -45,20 +55,25 @@ afterEach(() => {
 });
 
 describe('removed routes', () => {
+  // Only /submit-report reads multipart forms, so anywhere else even a valid token is never seen
   it('no longer accepts uploads from anyone at /api/upload', async () => {
+    const { token, cookies } = await csrfCredentials();
+
     const response = await request(app)
       .post('/api/upload')
+      .set('Cookie', cookies)
+      .field('_csrf', token)
       .attach('image', Buffer.from('<script>alert(1)</script>'), 'page.html');
 
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(403);
     expect(newFiles()).toEqual([]);
   });
 
   it.each([
-    ['GET', '/api/reports'],
-    ['POST', '/api/reports'],
-  ])('no longer serves %s %s, which could never succeed', async (method, url) => {
-    const response = await request(app)[method.toLowerCase()](url);
+    ['GET', () => request(app).get('/api/reports')],
+    ['POST', () => postForm('/api/reports')],
+  ])('no longer serves %s /api/reports, which could never succeed', async (method, send) => {
+    const response = await send();
 
     expect(response.status).toBe(404);
   });
@@ -111,7 +126,10 @@ describe('POST /submit-report with an image', () => {
   });
 
   it('refuses more than one image', async () => {
-    const response = await submitWithImage(pngImage, 'one.png', 'image/png').attach('image', pngImage, 'two.png');
+    const response = await submitWithImages([
+      { content: pngImage, fileName: 'one.png', contentType: 'image/png' },
+      { content: pngImage, fileName: 'two.png', contentType: 'image/png' },
+    ]);
 
     expect(response.status).toBe(400);
     expect(newFiles()).toEqual([]);
@@ -125,7 +143,9 @@ describe('POST /submit-report with an image', () => {
   });
 
   it('writes nothing to disk for a visitor who is not logged in', async () => {
-    const response = await request(app).post('/submit-report').attach('image', pngImage, 'photo.png');
+    const response = await submitWithImages([{ content: pngImage, fileName: 'photo.png', contentType: 'image/png' }], {
+      sessionCookie: null,
+    });
 
     expect(response.status).toBe(401);
     expect(newFiles()).toEqual([]);

@@ -70,6 +70,7 @@
 
               <%# Delete button: sends a POST to delete this report %>
               <form action="/track/<%= report.id %>/delete" method="POST" class="inline-form">
+                <%- include('includes/csrf-field') %>
                 <button class="delete" type="submit">Delete</button>
               </form>
             </div>

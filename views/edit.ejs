@@ -18,6 +18,7 @@
 
         <%# Edit form: posts the changes to /track/<id>/edit %>
         <form action="/track/<%= report.id %>/edit" method="POST">
+          <%- include('includes/csrf-field') %>
 
             <%# Title field, pre-filled with the current title %>
             <input type="text" value="<%= report.title %>" name="title" placeholder="name" /><br />

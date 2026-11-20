@@ -5,6 +5,8 @@ export default {
   },
   // Run the tests in a Node.js environment (not a browser)
   testEnvironment: 'node',
+  // Set the environment variables the application requires before any test file loads it
+  setupFiles: ['<rootDir>/tests/Jest/setup-env.js'],
   // Only run test files named *.test.js inside tests/Jest
   testMatch: [
     '**/tests/Jest/**/*.test.js',

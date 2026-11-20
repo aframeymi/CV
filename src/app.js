@@ -4,6 +4,7 @@ import prisma from '../prismaClient.js';
 import cookieParser from 'cookie-parser';
 import router from './routes/index.js';
 import middleware from './middleware/index.js';
+import { checkCsrfToken, provideCsrfToken, requireCsrfToken } from './middleware/csrf-protection.js';
 import { receiveImage } from './middleware/image-upload.js';
 import { securityHeaders } from './middleware/security-headers.js';
 import { deleteImage, saveImage, UnsupportedImageError } from './services/image-storage.js';
@@ -29,6 +30,9 @@ app.use(express.static('public'));
 const CHART_JS = path.join(process.cwd(), 'node_modules', 'chart.js', 'dist', 'chart.umd.js');
 app.get('/vendor/chart.umd.js', (req, res) => res.sendFile(CHART_JS));
 app.use(cookieParser());
+// Before the session is checked, so a forged request is refused without any further work
+app.use(provideCsrfToken);
+app.use(requireCsrfToken);
 app.use(middleware.attachUserIfPresent);
 app.set('view engine', 'ejs');
 app.set('views', path.join(process.cwd(), 'views'));
@@ -70,7 +74,7 @@ app.get('/report', async (req, res) => {
 });
 
 // New Report Submission. The image is saved only once the rest of the form is valid.
-app.post('/submit-report', middleware.requireVerifiedUser, receiveImage, async (req, res) => {
+app.post('/submit-report', middleware.requireVerifiedUser, receiveImage, checkCsrfToken, async (req, res) => {
   const { values, problem } = checkForm(newReportForm, req.body);
   if (problem) {
     return res.status(422).send(problem);

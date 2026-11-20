@@ -43,6 +43,7 @@
     <div class="feedback-form">
             <p>Your Feedback</p>
             <form action="/feedback" method="POST" >
+              <%- include('includes/csrf-field') %>
                 <input type="email" name="email" placeholder="Email"> <br>
                 <textarea name="feedback" id="feedback" placeholder="Write your feedback here..." rows="6"></textarea> <br>
                 <input type="submit" value="SUBMIT">

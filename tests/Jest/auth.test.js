@@ -13,6 +13,7 @@ import {
 import prisma from '../../prismaClient.js';
 import { createSessionCookie, revokeRefreshTokens, verifySessionCookie } from './mocks/firebase.js';
 import { SESSION_COOKIE, citizen, logInAs } from './helpers/auth.js';
+import { postForm } from './helpers/csrf.js';
 
 jest.mock('../../src/services/firebase-identity.js', () => {
   const actual = jest.requireActual('../../src/services/firebase-identity.js');
@@ -29,9 +30,6 @@ jest.mock('../../src/services/firebase-identity.js', () => {
 const ONE_DAY_SECONDS = 24 * 60 * 60;
 const credentials = { email: 'bob@example.com', password: 'correct horse' };
 
-function postForm(url, form) {
-  return request(app).post(url).type('form').send(form);
-}
 
 function sessionCookieFrom(response) {
   return (response.headers['set-cookie'] ?? []).find((cookie) => cookie.startsWith('session='));
@@ -63,11 +61,7 @@ describe('POST /api/login', () => {
   });
 
   it('marks the cookie Secure when the request arrived over HTTPS at the proxy', async () => {
-    const response = await request(app)
-      .post('/api/login')
-      .set('X-Forwarded-Proto', 'https')
-      .type('form')
-      .send(credentials);
+    const response = await postForm('/api/login', credentials, { headers: { 'X-Forwarded-Proto': 'https' } });
 
     expect(sessionCookieFrom(response)).toMatch(/Secure/);
   });
@@ -141,7 +135,7 @@ describe('POST /api/logout', () => {
   it('revokes the session at Firebase, so a copied cookie stops working', async () => {
     verifySessionCookie.mockResolvedValue({ sub: citizen.firebaseUid, uid: citizen.firebaseUid });
 
-    const response = await request(app).post('/api/logout').set('Cookie', SESSION_COOKIE);
+    const response = await postForm('/api/logout', {}, { sessionCookie: SESSION_COOKIE });
 
     expect(response.status).toBe(302);
     expect(response.headers.location).toBe('/');
@@ -151,7 +145,7 @@ describe('POST /api/logout', () => {
   it('deletes the session cookie in the browser', async () => {
     verifySessionCookie.mockResolvedValue({ sub: citizen.firebaseUid });
 
-    const response = await request(app).post('/api/logout').set('Cookie', SESSION_COOKIE);
+    const response = await postForm('/api/logout', {}, { sessionCookie: SESSION_COOKIE });
 
     const cookie = sessionCookieFrom(response);
     expect(cookie).toMatch(/^session=;/);
@@ -161,7 +155,7 @@ describe('POST /api/logout', () => {
   it('still clears the cookie when the session is already invalid', async () => {
     verifySessionCookie.mockRejectedValue(new Error('session revoked'));
 
-    const response = await request(app).post('/api/logout').set('Cookie', SESSION_COOKIE);
+    const response = await postForm('/api/logout', {}, { sessionCookie: SESSION_COOKIE });
 
     expect(response.status).toBe(302);
     expect(revokeRefreshTokens).not.toHaveBeenCalled();

@@ -24,6 +24,7 @@
 
         <%# Login form: posts email and password to /api/login %>
         <form method="POST" action="/api/login">
+          <%- include('includes/csrf-field') %>
             <input type="email" name="email" placeholder="Email" required />
             <input type="password" name="password" placeholder="Password" required />
             <input type="submit" value="Sign in" />
@@ -33,6 +34,7 @@
         <details>
             <summary>Forgot your password?</summary>
             <form method="POST" action="/api/reset-password">
+              <%- include('includes/csrf-field') %>
                 <input type="email" name="email" placeholder="Email" required />
                 <input type="submit" value="Send reset link" />
             </form>

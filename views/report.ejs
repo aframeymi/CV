@@ -18,6 +18,7 @@
     <div class="report-form">
       <h1>Record a Report</h1>
       <form id="reportForm" method="post" action="/submit-report" autocomplete="off" enctype="multipart/form-data">
+        <%- include('includes/csrf-field') %>
         <input type="text" id="title" name="title" placeholder="Title" required>
         <textarea id="description" name="description" placeholder="Write details in here..." required></textarea>
         <label for="city">City</label>

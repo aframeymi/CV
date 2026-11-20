@@ -30,6 +30,7 @@
         <a href="/profile">Profile</a>
         <a href="/settings">Setting</a>
         <form method="POST" action="/api/logout" class="logout-form">
+          <%- include('csrf-field') %>
           <button type="submit" class="linklike">
             Logout
           </button>
