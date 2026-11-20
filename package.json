@@ -29,7 +29,7 @@
   },
   "homepage": "https://github.com/aframeymi/CV#readme",
   "dependencies": {
-    "@prisma/client": "^6.19.0",
+    "@prisma/client": "^7.10.1",
     "chart.js": "4.4.1",
     "cookie-parser": "^1.4.7",
     "csrf-csrf": "4.1.0",
