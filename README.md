@@ -149,6 +149,8 @@ The [threat model](docs/security/threat-model.md) lists the assets, trust bounda
 - Every response carries a strict Content Security Policy, HSTS, and clickjacking protection ([`security-headers.js`](src/middleware/security-headers.js)). Pages must not contain inline scripts, `style` attributes, or `on...=` handlers: put code in `public/` and styles in `public/style.css`. A test fails otherwise.
 - Every form that sends a POST must include `<%- include('includes/csrf-field') %>`. Requests without a valid CSRF token are refused with 403.
 - Login, registration, password reset, and report submission are rate limited per IP address ([`rate-limits.js`](src/middleware/rate-limits.js)).
+- Unexpected errors show visitors a general page with a short error ID, never details. Pass errors on with `next(error)` instead of answering 500 in a route.
+- Security events (logins, refused requests, report changes) are written as JSON lines to the server output with `logSecurityEvent` ([`server-log.js`](src/services/server-log.js)). Never log passwords, tokens, cookies, form contents, or email addresses. On Render, filter the log for `"type":"security"` or for an error ID.
 - Report images must be JPEG, PNG, or WebP and at most 5 MB. The type is checked from the file content, and files are stored under random names.
 - Use HTTPS in production so authentication cookies and credentials are protected in transit.
 - Review authorisation checks on every route that reads, edits, or deletes user data.
