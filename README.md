@@ -36,6 +36,8 @@ This README is primarily for developers who want to run, test, or contribute to 
 - **ORM:** Prisma
 - **Authentication:** Firebase Authentication and Firebase Admin SDK
 - **Uploads:** Multer
+- **Security:** helmet (headers), csrf-csrf (CSRF tokens), express-rate-limit, zod (input validation)
+- **Charts:** Chart.js, served from the installed package
 - **Testing:** Jest, SuperTest, and Playwright
 - **Development:** Nodemon
 
@@ -67,10 +69,17 @@ Copy `.env.example` to `.env` in the project root and fill in your values. Do no
 DATABASE_URL="postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require"
 FIREBASE_API_KEY="your-firebase-api-key"
 FIREBASE_SERVICE_ACCOUNT=
+CSRF_SECRET=
 PORT=5000
 ```
 
-`FIREBASE_SERVICE_ACCOUNT` must contain the complete Firebase service-account JSON required by the Firebase Admin SDK. Never place a real credential in the README or commit it to Git.
+`FIREBASE_SERVICE_ACCOUNT` must contain the complete Firebase service-account JSON required by the Firebase Admin SDK.
+
+`CSRF_SECRET` signs the tokens that protect every form. It must be a random value of at least 32 characters, different in every environment. The application refuses to start without it. Generate one with:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+``` Never place a real credential in the README or commit it to Git.
 
 ### 3. Prepare and seed the database
 
@@ -137,6 +146,9 @@ The [threat model](docs/security/threat-model.md) lists the assets, trust bounda
 - Use a separate Firebase project and database for development where possible.
 - Every form is checked on the server against the rules in [`src/validation/forms.js`](src/validation/forms.js): required fields, maximum lengths, email format, and ID format. Fields a form does not define are ignored.
 - New passwords need at least 12 characters, with no rules about symbols or digits. Set the Firebase password policy (Authentication → Settings → Password policy) to the same minimum, so passwords set on Firebase's own reset page follow it too.
+- Every response carries a strict Content Security Policy, HSTS, and clickjacking protection ([`security-headers.js`](src/middleware/security-headers.js)). Pages must not contain inline scripts, `style` attributes, or `on...=` handlers: put code in `public/` and styles in `public/style.css`. A test fails otherwise.
+- Every form that sends a POST must include `<%- include('includes/csrf-field') %>`. Requests without a valid CSRF token are refused with 403.
+- Login, registration, password reset, and report submission are rate limited per IP address ([`rate-limits.js`](src/middleware/rate-limits.js)).
 - Report images must be JPEG, PNG, or WebP and at most 5 MB. The type is checked from the file content, and files are stored under random names.
 - Use HTTPS in production so authentication cookies and credentials are protected in transit.
 - Review authorisation checks on every route that reads, edits, or deletes user data.

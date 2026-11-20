@@ -161,7 +161,7 @@ The application runs entirely on managed cloud services, so there is no server h
 | ID | Threat | STRIDE | Assets | Risk | Status | Fix |
 |---|---|---|---|---|---|---|
 | T-05 | Traffic interception between the browser and Render | I, T | A1, A2, A3 | Low | Mitigated | Render serves HTTPS. HSTS is still missing, see T-06 |
-| T-06 | HTTPS downgrade, because there is no HSTS header. The session cookie is now marked `Secure` whenever the request reached Render over HTTPS ([`session-service.js`](../../src/services/session-service.js)) | I, S | A3 | Medium | Open | Step 6 |
+| T-06 | HTTPS downgrade, because there was no HSTS header. **Fixed:** every response sends HSTS for one year, and the session and CSRF cookies are marked `Secure` whenever the request reached Render over HTTPS. [`security-headers.js`](../../src/middleware/security-headers.js), tested in [`security-headers.test.js`](../../tests/Jest/security-headers.test.js) | I, S | A3 | Medium | Mitigated | Step 6 |
 | T-07 | Traffic interception between the application and Neon | I, T | A1, A7 | Low | Mitigated | `sslmode=require` and `channel_binding=require` |
 | T-08 | Traffic interception between the application and Firebase | I, T | A2, A3 | Low | Mitigated | The Firebase SDKs use HTTPS |
 
@@ -173,12 +173,12 @@ The application runs entirely on managed cloud services, so there is no server h
 |---|---|---|---|---|---|---|
 | T-09 | Account takeover by email: users are matched by email and `email_verified` is never checked, so registering a seeded address in Firebase gives that user's role, including admin. Confirmed on 2026-11-19: the shared database held a seeded admin with no Firebase account. **Fixed:** profiles are matched by Firebase ID (now unique), a verified email is required, and an email clash with an existing profile is refused rather than linked. The seed no longer creates admins. [`user-profile-service.js`](../../src/services/user-profile-service.js), [`middleware/index.js`](../../src/middleware/index.js), tested in [`user-profile-service.test.js`](../../tests/Jest/user-profile-service.test.js) | S, E | A1, A4, A8 | High | Mitigated | Step 2 |
 | T-10 | One shared Firebase client on the server meant simultaneous requests could act on the wrong user. **Fixed:** the server no longer uses the client SDK. Each sign-in, sign-up, and email request is its own REST call. [`firebase-identity.js`](../../src/services/firebase-identity.js), tested in [`firebase-identity.test.js`](../../tests/Jest/firebase-identity.test.js) | S, T | A3 | High | Mitigated | Step 3 |
-| T-11 | Password guessing and credential stuffing, because login has no rate limit | S | A2, A3 | High | Open | Step 6 |
+| T-11 | Password guessing and credential stuffing, because login had no rate limit. **Fixed:** 10 failed logins per IP address in 15 minutes, on top of Firebase's own protection. Credential stuffing from many addresses is only slowed, not stopped. [`rate-limits.js`](../../src/middleware/rate-limits.js), tested in [`rate-limits.test.js`](../../tests/Jest/rate-limits.test.js) | S | A2, A3 | High | Mitigated | Step 6 |
 | T-12 | A stolen token stayed valid after logout, because logout only cleared the browser cookie. **Fixed:** sessions are one-day Firebase session cookies, logout revokes them at Firebase, and every request checks for revocation. [`session-service.js`](../../src/services/session-service.js), tested in [`auth.test.js`](../../tests/Jest/auth.test.js) | S | A3 | Medium | Mitigated | Step 3 |
 | T-13 | Account enumeration and internal detail exposure through raw Firebase error messages. **Fixed:** login gives one message for a wrong email or password, password reset gives one notice whether or not the account exists, and Firebase codes are never shown. Registration still says when an email is taken, see section 8. [`auth-controller.js`](../../src/controllers/auth-controller.js) | I | A1 | Medium | Mitigated | Step 3 |
 | T-14 | Weak passwords, because Firebase accepted 6 characters. **Fixed:** new passwords need at least 12 characters, with no composition rules (NIST SP 800-63B). Login still accepts older, shorter passwords so no account is locked out. Firebase's password policy is set to the same minimum in notify mode, which covers passwords set on Firebase's own reset page. [`forms.js`](../../src/validation/forms.js), tested in [`forms.test.js`](../../tests/Jest/forms.test.js) and [`auth.test.js`](../../tests/Jest/auth.test.js) | S | A2 | Medium | Mitigated | Step 5 |
 | T-15 | Password hashes were stored in Neon although Firebase handles login, so a database leak exposed more than it needed to. **Fixed:** the column and the bcrypt dependency are removed. [`drop_stored_password_hashes`](../../prisma/migrations/20261120090000_drop_stored_password_hashes/migration.sql) | I | A2 | Medium | Mitigated | Step 3 |
-| T-16 | Spam accounts and email flooding through registration and password reset | D, S | A9 | Medium | Open | Step 6 |
+| T-16 | Spam accounts and email flooding through registration and password reset. **Fixed:** 5 registrations and 5 reset emails per IP address per hour. [`rate-limits.js`](../../src/middleware/rate-limits.js) | D, S | A9 | Medium | Mitigated | Step 6 |
 
 **Authorization**
 
@@ -192,7 +192,7 @@ The application runs entirely on managed cloud services, so there is no server h
 | ID | Threat | STRIDE | Assets | Risk | Status | Fix |
 |---|---|---|---|---|---|---|
 | T-22 | Stored XSS: `/api/upload` needed no login and accepted any file, so an uploaded `.html` or `.svg` file was served from the application domain and ran as the victim. **Fixed:** the route is removed. The report form accepts only JPEG, PNG, and WebP, detected from the file content, and static files are served with `X-Content-Type-Options: nosniff`. [`image-storage.js`](../../src/services/image-storage.js), tested in [`uploads.test.js`](../../tests/Jest/uploads.test.js) | T, E | A3, A4, A5 | Critical | Mitigated | Step 4 |
-| T-23 | Disk exhaustion through uploads. **Fixed:** one image of at most 5 MB per report, held in memory and written only after the whole form is valid. Rate limits in Step 6 will cap how many reports one client can send. [`image-upload.js`](../../src/middleware/image-upload.js) | D | A9 | High | Mitigated | Step 4 |
+| T-23 | Disk exhaustion through uploads. **Fixed:** one image of at most 5 MB per report, held in memory and written only after the whole form is valid. Since Step 6, one client can send at most 20 reports per hour. [`image-upload.js`](../../src/middleware/image-upload.js) | D | A9 | High | Mitigated | Step 4 |
 | T-24 | The stored file name kept the user-supplied name, and neither type nor content was checked. **Fixed:** files are saved under a random UUID with an extension chosen from the detected type, and removed again if saving the report fails | T | A5 | Medium | Mitigated | Step 4 |
 
 **Input and output handling**
@@ -209,9 +209,9 @@ The application runs entirely on managed cloud services, so there is no server h
 
 | ID | Threat | STRIDE | Assets | Risk | Status | Fix |
 |---|---|---|---|---|---|---|
-| T-30 | Cross-site request forgery on state-changing forms. The session cookie is now `SameSite=Lax`, so browsers do not send it on cross-site form posts, but there are no CSRF tokens as a second layer | T, E | A4 | Medium | Open | Step 6 |
-| T-31 | No security headers, so there is no Content Security Policy as a second line of defence against XSS, and pages can be framed for clickjacking | T, I | A3 | High | Open | Step 6 |
-| T-32 | Chart.js loads from a CDN with no integrity hash, so a compromised file would run on the page. [`graph.ejs`](../../views/graph.ejs) | T, E | A3 | Medium | Open | Step 6 |
+| T-30 | Cross-site request forgery on state-changing forms. The session cookie is `SameSite=Lax`, so browsers do not send it on cross-site form posts. **Fixed:** as a second layer, every form carries a signed CSRF token bound to the session (double-submit cookie pattern), and every POST without it is refused with 403. [`csrf-protection.js`](../../src/middleware/csrf-protection.js), tested in [`csrf.test.js`](../../tests/Jest/csrf.test.js) | T, E | A4 | Medium | Mitigated | Step 6 |
+| T-31 | No security headers, so there was no Content Security Policy as a second line of defence against XSS, and pages could be framed for clickjacking. **Fixed:** inline scripts and styles moved into files, and a strict Content Security Policy allows code only from this site. `frame-ancestors 'none'` and `X-Frame-Options: DENY` prevent framing. A test fails if any page brings back inline code. [`security-headers.js`](../../src/middleware/security-headers.js), tested in [`security-headers.test.js`](../../tests/Jest/security-headers.test.js) and [`inline-code.test.js`](../../tests/Jest/inline-code.test.js) | T, I | A3 | High | Mitigated | Step 6 |
+| T-32 | Chart.js loaded from a CDN with no integrity hash, so a compromised file would have run on the page. **Fixed:** Chart.js is installed from npm, pinned in `package-lock.json` with its integrity hash, and served by the application. The Content Security Policy blocks scripts from any other site | T, E | A3 | Medium | Mitigated | Step 6 |
 
 **Errors, logging, and privacy**
 
@@ -238,10 +238,10 @@ Every STRIDE category is represented at the application boundary (B1). This tabl
 
 | Category | Worst open example | Risk |
 |---|---|---|
-| Spoofing | T-11 password guessing, no rate limit | High |
-| Tampering | T-31 no security headers | High |
+| Spoofing | T-43 service-account key misuse | Medium |
+| Tampering | T-40 vulnerable dependencies | High |
 | Repudiation | T-34 no audit record | Medium |
-| Information disclosure | T-31 no security headers | High |
+| Information disclosure | T-33 stack traces can reach users | Medium |
 | Denial of service | T-40 vulnerable dependencies | High |
 | Elevation of privilege | T-40 vulnerable dependencies | High |
 
@@ -271,3 +271,5 @@ These could not be confirmed from the repository, because they are settings in e
 - [ ] Which IP addresses Neon accepts connections from (T-04).
 - [ ] The database role used by the application has only the privileges it needs.
 - [ ] The developer laptop uses disk encryption (T-01).
+- [ ] On Render, `req.ip` is the visitor's own address and not that of a proxy. The rate limits count per address, so if every request seemed to come from one proxy, all visitors would share one limit (T-11, T-16).
+- [ ] `CSRF_SECRET` is set on Render to its own random value, different from the one in the local `.env` (T-30).
