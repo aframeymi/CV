@@ -218,6 +218,7 @@ A deployed instance runs on Render at <https://cv-wluv.onrender.com>, with the `
 | `FIREBASE_SERVICE_ACCOUNT` | The service-account JSON on one line |
 | `CSRF_SECRET` | Its own random value, generated as described in [Configure the environment](#2-configure-the-environment), never the local one |
 | `NODE_ENV` | `production` |
+| `TRUST_PROXY_HOPS` | `3`. Requests reach the app through Cloudflare and two Render proxies, and Express must skip exactly these to find the visitor's address. Measured on Render; see [`src/config/proxy.js`](src/config/proxy.js) |
 
 Render provides `PORT` itself. Never copy local secrets into source control.
 
@@ -225,5 +226,5 @@ Render provides `PORT` itself. Never copy local secrets into source control.
 
 1. Open the site and check that the pages load over HTTPS.
 2. Register or log in, and submit a report with an image.
-3. In Render's **Logs**, check that the security events show your own IP address in `ip`. The rate limits count per address, so they only work if Render passes on the visitor's address.
+3. In Render's **Logs**, check that the security events show your own IP address in `ip`. The rate limits count per address, so they only work if `TRUST_PROXY_HOPS` matches the number of proxies. If `ip` shows a private `10.x` address, the number is too low. If it shows an address that a request can set itself with an `X-Forwarded-For` header, it is too high.
 4. The first time only: make an admin as described in [Accounts and roles](#accounts-and-roles), using the SQL editor on the `production` branch.
