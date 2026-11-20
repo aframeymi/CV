@@ -165,7 +165,6 @@ describe('POST /api/register', () => {
   const form = {
     name: 'Ada',
     surname: 'Lovelace',
-    phone: '0301234567',
     email: 'ada@example.org',
     password: 'analytical engine',
     confirm_password: 'analytical engine',
@@ -197,10 +196,10 @@ describe('POST /api/register', () => {
       email: 'ada@example.org',
       firstName: 'Ada',
       lastName: 'Lovelace',
-      phone: '0301234567',
       roleId: 'role-citizen',
     });
     expect(data).not.toHaveProperty('passwordHash');
+    expect(data).not.toHaveProperty('phone');
     expect(JSON.stringify(data)).not.toContain(form.password);
   });
 

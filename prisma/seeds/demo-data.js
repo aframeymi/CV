@@ -5,9 +5,9 @@
 export const DEMO_EMAIL_DOMAIN = '@example.com';
 
 const DEMO_USERS = [
-  { firstName: 'Alice', lastName: 'Anderson', phone: '+4915111111111', email: 'alice@example.com' },
-  { firstName: 'Bob', lastName: 'Brown', phone: '+4915222222222', email: 'bob@example.com' },
-  { firstName: 'Cara', lastName: 'Clark', phone: '+4915333333333', email: 'cara@example.com' },
+  { firstName: 'Alice', lastName: 'Anderson', email: 'alice@example.com' },
+  { firstName: 'Bob', lastName: 'Brown', email: 'bob@example.com' },
+  { firstName: 'Cara', lastName: 'Clark', email: 'cara@example.com' },
 ];
 
 const SAMPLE_REPORTS = [

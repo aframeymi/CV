@@ -61,7 +61,7 @@ export async function logOut(req, res, next) {
 
 // Creates the account and profile, then asks the user to verify their email before signing in
 export async function register(req, res, next) {
-  const { email, password, confirm_password: passwordConfirmation, name, surname, phone } = req.body;
+  const { email, password, confirm_password: passwordConfirmation, name, surname } = req.body;
   if (!email || !password) {
     return renderSignUp(res, 422, 'Please enter your email address and a password.');
   }
@@ -73,7 +73,7 @@ export async function register(req, res, next) {
     const displayName = [name, surname].filter(Boolean).join(' ');
     await nameAccount(account.uid, displayName);
     await sendVerificationEmail(account.idToken);
-    await findOrCreateProfile({ uid: account.uid, email: account.email, name: displayName }, { phone });
+    await findOrCreateProfile({ uid: account.uid, email: account.email, name: displayName });
     return renderSignIn(res, 201, { notice: REGISTERED });
   } catch (error) {
     if (error instanceof ProfileConflictError) {
