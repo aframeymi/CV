@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import router from './routes/index.js';
 import middleware from './middleware/index.js';
 import { receiveImage } from './middleware/image-upload.js';
+import { securityHeaders } from './middleware/security-headers.js';
 import { deleteImage, saveImage, UnsupportedImageError } from './services/image-storage.js';
 import { loadReportForModification } from './middleware/report-access.js';
 import { findTopReporters, getPublicReportStatistics } from './services/report-statistics.js';
@@ -17,11 +18,13 @@ const app = express();
 // Render terminates HTTPS at its proxy, so trust its X-Forwarded-Proto header for req.secure
 app.set('trust proxy', 1);
 
+// First, so that every response carries the headers, including static files and errors
+app.use(securityHeaders);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // Static files never need the session, so serve them before it is checked.
-// nosniff stops browsers from treating an uploaded file as anything other than its declared type.
-app.use(express.static('public', { setHeaders: (res) => res.setHeader('X-Content-Type-Options', 'nosniff') }));
+// The security headers include nosniff, so browsers never treat an upload as a different type.
+app.use(express.static('public'));
 // Chart.js is served from the installed npm package, so pages load no code from other sites
 const CHART_JS = path.join(process.cwd(), 'node_modules', 'chart.js', 'dist', 'chart.umd.js');
 app.get('/vendor/chart.umd.js', (req, res) => res.sendFile(CHART_JS));
