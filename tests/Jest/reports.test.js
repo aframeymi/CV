@@ -3,10 +3,11 @@ import request from 'supertest';
 import app from '../../src/app.js';
 import prisma from '../../prismaClient.js';
 import { SESSION_COOKIE, admin, citizen, logInAs } from './helpers/auth.js';
+import { NEIGHBORHOOD_ID, OTHER_REPORT_ID, REPORT_ID } from './helpers/ids.js';
 
-const validForm = { title: 'Broken light', description: 'Out since Monday', neighborhoodId: 'n1' };
-const ownReport = { id: 'report-1', authorId: citizen.id, title: 'Mine', description: 'text' };
-const othersReport = { id: 'report-2', authorId: 'someone-else', title: 'Theirs', description: 'text' };
+const validForm = { title: 'Broken light', description: 'Out since Monday', neighborhoodId: NEIGHBORHOOD_ID };
+const ownReport = { id: REPORT_ID, authorId: citizen.id, title: 'Mine', description: 'text' };
+const othersReport = { id: OTHER_REPORT_ID, authorId: 'someone-else', title: 'Theirs', description: 'text' };
 
 function submitReport(form) {
   return request(app).post('/submit-report').set('Cookie', SESSION_COOKIE).type('form').send(form);
@@ -19,8 +20,8 @@ function deleteReport(id) {
 describe('POST /submit-report', () => {
   beforeEach(() => {
     logInAs(citizen);
-    prisma.neighborhood.findUnique.mockResolvedValue({ id: 'n1' });
-    prisma.report.create.mockResolvedValue({ id: 'report-1' });
+    prisma.neighborhood.findUnique.mockResolvedValue({ id: NEIGHBORHOOD_ID });
+    prisma.report.create.mockResolvedValue({ id: REPORT_ID });
   });
 
   it('asks a visitor who is not logged in to log in', async () => {
@@ -62,6 +63,21 @@ describe('POST /submit-report', () => {
     });
   });
 
+  it('refuses a neighborhood ID in the wrong format without asking the database', async () => {
+    const response = await submitReport({ ...validForm, neighborhoodId: "' OR 1=1 --" });
+
+    expect(response.status).toBe(422);
+    expect(prisma.neighborhood.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('refuses a title longer than 120 characters', async () => {
+    const response = await submitReport({ ...validForm, title: 'a'.repeat(121) });
+
+    expect(response.status).toBe(422);
+    expect(response.text).toBe('The title can be at most 120 characters.');
+    expect(prisma.report.create).not.toHaveBeenCalled();
+  });
+
   it('rejects an unknown neighborhood', async () => {
     prisma.neighborhood.findUnique.mockResolvedValue(null);
 
@@ -79,15 +95,20 @@ describe('POST /submit-report', () => {
       data: expect.objectContaining({ title: 'Broken light', authorId: citizen.id, status: 'OPEN' }),
     });
     expect(prisma.statusChange.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ reportId: 'report-1', to: 'OPEN' }),
+      data: expect.objectContaining({ reportId: REPORT_ID, to: 'OPEN' }),
     });
   });
 });
 
 describe('GET /track', () => {
+  beforeEach(() => {
+    prisma.report.findMany.mockResolvedValue([]);
+    prisma.report.count.mockResolvedValue(0);
+  });
+
   it('escapes HTML in report content', async () => {
     prisma.report.findMany.mockResolvedValue([
-      { id: 'report-1', title: '<script>alert(1)</script>', description: 'text' },
+      { id: REPORT_ID, title: '<script>alert(1)</script>', description: 'text' },
     ]);
 
     const response = await request(app).get('/track');
@@ -99,8 +120,8 @@ describe('GET /track', () => {
 
   it('shows the uploaded photo of a report, and a placeholder for reports without one', async () => {
     prisma.report.findMany.mockResolvedValue([
-      { id: 'report-1', title: 'With photo', description: 'text', imageUrl: '/uploads/photo-id.jpg' },
-      { id: 'report-2', title: 'Without photo', description: 'text', imageUrl: null },
+      { id: REPORT_ID, title: 'With photo', description: 'text', imageUrl: '/uploads/photo-id.jpg' },
+      { id: OTHER_REPORT_ID, title: 'Without photo', description: 'text', imageUrl: null },
     ]);
 
     const response = await request(app).get('/track');
@@ -108,11 +129,67 @@ describe('GET /track', () => {
     expect(response.text).toContain('src="/uploads/photo-id.jpg"');
     expect(response.text).toContain('src="/seo-report.png"');
   });
+
+  it('loads 20 reports at a time, and only the fields the page shows', async () => {
+    prisma.report.count.mockResolvedValue(45);
+
+    await request(app).get('/track?page=2');
+
+    expect(prisma.report.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: { id: true, title: true, description: true, imageUrl: true },
+        skip: 20,
+        take: 20,
+      })
+    );
+  });
+
+  it('starts at the first page and links to the next one', async () => {
+    prisma.report.count.mockResolvedValue(45);
+
+    const response = await request(app).get('/track');
+
+    expect(prisma.report.findMany).toHaveBeenCalledWith(expect.objectContaining({ skip: 0 }));
+    expect(response.text).toContain('Page 1 of 3');
+    expect(response.text).toContain('href="/track?page=2"');
+    expect(response.text).not.toContain('Newer reports');
+  });
+
+  it('links back from the last page, but not further', async () => {
+    prisma.report.count.mockResolvedValue(45);
+
+    const response = await request(app).get('/track?page=3');
+
+    expect(response.text).toContain('href="/track?page=2"');
+    expect(response.text).not.toContain('Older reports');
+  });
+
+  it('shows an empty first page when there are no reports', async () => {
+    const response = await request(app).get('/track');
+
+    expect(response.status).toBe(200);
+    expect(response.text).toContain('Page 1 of 1');
+  });
+
+  it.each(['0', '-1', 'abc', '1.5'])('returns 404 for the page number %p', async (page) => {
+    const response = await request(app).get(`/track?page=${page}`);
+
+    expect(response.status).toBe(404);
+    expect(prisma.report.findMany).not.toHaveBeenCalled();
+  });
+
+  it('returns 404 for a page after the last one', async () => {
+    prisma.report.count.mockResolvedValue(45);
+
+    const response = await request(app).get('/track?page=4');
+
+    expect(response.status).toBe(404);
+  });
 });
 
 describe('POST /track/:id/delete', () => {
   it('asks a visitor who is not logged in to log in', async () => {
-    const response = await request(app).post('/track/report-1/delete');
+    const response = await request(app).post(`/track/${REPORT_ID}/delete`);
 
     expect(response.status).toBe(401);
     expect(prisma.report.delete).not.toHaveBeenCalled();
@@ -152,9 +229,18 @@ describe('POST /track/:id/delete', () => {
     logInAs(citizen);
     prisma.report.findUnique.mockResolvedValue(null);
 
-    const response = await deleteReport('missing');
+    const response = await deleteReport(REPORT_ID);
 
     expect(response.status).toBe(404);
+  });
+
+  it('returns 404 for a malformed report ID without asking the database', async () => {
+    logInAs(citizen);
+
+    const response = await deleteReport('not-a-report-id');
+
+    expect(response.status).toBe(404);
+    expect(prisma.report.findUnique).not.toHaveBeenCalled();
   });
 });
 
@@ -166,8 +252,8 @@ describe('editing a report', () => {
     return loggedIn ? call.set('Cookie', SESSION_COOKIE) : call;
   }
 
-  function saveEdit(id, { loggedIn = true } = {}) {
-    const call = request(app).post(`/track/${id}/edit`).type('form').send(editForm);
+  function saveEdit(id, { loggedIn = true, form = editForm } = {}) {
+    const call = request(app).post(`/track/${id}/edit`).type('form').send(form);
     return loggedIn ? call.set('Cookie', SESSION_COOKIE) : call;
   }
 
@@ -211,6 +297,28 @@ describe('editing a report', () => {
     });
   });
 
+  it('refuses an empty title', async () => {
+    logInAs(citizen);
+    prisma.report.findUnique.mockResolvedValue(ownReport);
+
+    const response = await saveEdit(ownReport.id, { form: { ...editForm, title: '' } });
+
+    expect(response.status).toBe(422);
+    expect(prisma.report.update).not.toHaveBeenCalled();
+  });
+
+  it('changes only the title and description, whatever else the form sends', async () => {
+    logInAs(citizen);
+    prisma.report.findUnique.mockResolvedValue(ownReport);
+
+    await saveEdit(ownReport.id, { form: { ...editForm, status: 'RESOLVED', authorId: 'someone-else' } });
+
+    expect(prisma.report.update).toHaveBeenCalledWith({
+      where: { id: ownReport.id },
+      data: { title: 'New title', description: 'New text' },
+    });
+  });
+
   it('lets an admin edit any report', async () => {
     logInAs(admin);
     prisma.report.findUnique.mockResolvedValue(othersReport);
@@ -245,7 +353,7 @@ describe('editing a report', () => {
     logInAs(citizen);
     prisma.report.findUnique.mockResolvedValue(null);
 
-    const response = await saveEdit('missing');
+    const response = await saveEdit(REPORT_ID);
 
     expect(response.status).toBe(404);
     expect(prisma.report.update).not.toHaveBeenCalled();

@@ -37,7 +37,6 @@ describe('findOrCreateProfile', () => {
         email: 'new@example.org',
         firstName: 'Ada',
         lastName: 'Mae Lovelace',
-        phone: '',
         roleId: CITIZEN_ROLE.id,
       },
       include: { role: true },
@@ -75,15 +74,5 @@ describe('findOrCreateProfile', () => {
     prisma.user.create.mockRejectedValue(new Error('connection lost'));
 
     await expect(findOrCreateProfile(token)).rejects.toThrow('connection lost');
-  });
-});
-
-describe('findOrCreateProfile with registration details', () => {
-  it('stores the phone number from the registration form', async () => {
-    prisma.user.findUnique.mockResolvedValue(null);
-
-    await findOrCreateProfile(token, { phone: '0301234567' });
-
-    expect(prisma.user.create.mock.calls[0][0].data.phone).toBe('0301234567');
   });
 });

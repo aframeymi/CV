@@ -8,6 +8,9 @@ import { receiveImage } from './middleware/image-upload.js';
 import { deleteImage, saveImage, UnsupportedImageError } from './services/image-storage.js';
 import { loadReportForModification } from './middleware/report-access.js';
 import { findTopReporters, getPublicReportStatistics } from './services/report-statistics.js';
+import { findReportPage } from './services/report-listing.js';
+import { toScriptJson } from './utils/script-json.js';
+import { checkForm, newReportForm, pageQuery, reportChangesForm } from './validation/forms.js';
 
 const app = express();
 
@@ -53,7 +56,7 @@ app.get('/report', async (req, res) => {
       include: { neighborhoods: true },
       orderBy: { name: 'asc' },
     });
-    res.render('report', { title: 'Report', cities });
+    res.render('report', { title: 'Report', cities, citiesJson: toScriptJson(cities) });
   } catch (e) {
     console.error('Failed to load cities:', e);
     res.status(500).send('Could not load the report form.');
@@ -62,10 +65,11 @@ app.get('/report', async (req, res) => {
 
 // New Report Submission. The image is saved only once the rest of the form is valid.
 app.post('/submit-report', middleware.requireVerifiedUser, receiveImage, async (req, res) => {
-  const { title, description, neighborhoodId } = req.body;
-  if (!title || !description || !neighborhoodId) {
-    return res.status(422).send('title, description, and neighborhoodId are required.');
+  const { values, problem } = checkForm(newReportForm, req.body);
+  if (problem) {
+    return res.status(422).send(problem);
   }
+  const { title, description, neighborhoodId } = values;
 
   let image = null;
   try {
@@ -105,21 +109,22 @@ function createReportWithHistory({ title, description, neighborhoodId, author, i
   });
 }
 
-// List all reports with author & location
-app.get('/track', async (req, res) => {
-  try {
-    const reports = await prisma.report.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: {
-        author: { select: { firstName: true, lastName: true, email: true } },
-        neighborhood: { select: { name: true, city: { select: { name: true } } } },
-      },
-    });
+const PAGE_NOT_FOUND = 'Page not found.';
 
-    res.render('track', { title: 'Track', reports });
+app.get('/track', async (req, res) => {
+  const { values, problem } = checkForm(pageQuery, req.query);
+  if (problem) {
+    return res.status(404).send(PAGE_NOT_FOUND);
+  }
+  try {
+    const { reports, pageCount } = await findReportPage(values.page);
+    if (values.page > pageCount) {
+      return res.status(404).send(PAGE_NOT_FOUND);
+    }
+    return res.render('track', { title: 'Track', reports, page: values.page, pageCount });
   } catch (error) {
     console.error('Error fetching reports:', error);
-    res.status(500).send('Could not fetch reports.');
+    return res.status(500).send('Could not fetch reports.');
   }
 });
 
@@ -131,16 +136,17 @@ app.get('/track/:id/edit', modifiableReport, (req, res) => {
 });
 
 app.post('/track/:id/edit', modifiableReport, async (req, res) => {
-  const { title, description } = req.body;
+  const { values, problem } = checkForm(reportChangesForm, req.body);
+  if (problem) {
+    return res.status(422).send(problem);
+  }
   try {
-    await prisma.report.update({
-      where: { id: req.report.id },
-      data: { title, description },
-    });
-    res.redirect('/track');
+    // values holds only the title and description, so no other column can be changed through this form
+    await prisma.report.update({ where: { id: req.report.id }, data: values });
+    return res.redirect('/track');
   } catch (err) {
     console.error('Error updating report:', err);
-    res.status(500).send('Internal Server Error');
+    return res.status(500).send('Internal Server Error');
   }
 });
 
@@ -158,10 +164,12 @@ app.post('/track/:id/delete', modifiableReport, async (req, res) => {
 // Every /admin route requires a logged-in, verified administrator
 const adminOnly = [middleware.requireVerifiedUser, middleware.requireAdmin];
 
-// Admin: Count reports per city and status using a raw SQL query
+// Admin: count reports per city and status.
+// $queryRaw sends any ${value} placed in the query as a parameter, never as SQL text,
+// so adding a filter later cannot open the query to SQL injection.
 app.get('/admin/report-stats', adminOnly, async (req, res) => {
   try {
-    const rows = await prisma.$queryRawUnsafe(`
+    const rows = await prisma.$queryRaw`
       SELECT
         c.name AS city,
         r.status AS status,
@@ -171,7 +179,7 @@ app.get('/admin/report-stats', adminOnly, async (req, res) => {
       JOIN cities c ON c.id = n.city_id
       GROUP BY c.name, r.status
       ORDER BY c.name, r.status;
-    `);
+    `;
     res.json({ rows });
   } catch (e) {
     console.error('report-stats error:', e);

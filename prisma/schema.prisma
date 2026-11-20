@@ -19,7 +19,6 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   firstName    String   @map("first_name")
   lastName     String   @map("last_name")
-  phone        String
   email        String   @unique
   firebaseUid  String?  @unique @map("firebase_uid")
   roleId       String   @map("role_id")

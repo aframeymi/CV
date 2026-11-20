@@ -6,13 +6,14 @@ import request from 'supertest';
 import app from '../../src/app.js';
 import prisma from '../../prismaClient.js';
 import { SESSION_COOKIE, citizen, logInAs } from './helpers/auth.js';
+import { NEIGHBORHOOD_ID, REPORT_ID } from './helpers/ids.js';
 
 const UPLOAD_DIRECTORY = path.join(process.cwd(), 'public', 'uploads');
 const FIVE_MB = 5 * 1024 * 1024;
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const JPEG_SIGNATURE = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
 const WEBP_HEADER = Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WEBPVP8 ')]);
-const validForm = { title: 'Broken light', description: 'Out since Monday', neighborhoodId: 'n1' };
+const validForm = { title: 'Broken light', description: 'Out since Monday', neighborhoodId: NEIGHBORHOOD_ID };
 
 const pngImage = Buffer.concat([PNG_SIGNATURE, Buffer.alloc(64)]);
 
@@ -35,8 +36,8 @@ function submitWithImage(content, fileName, contentType, form = validForm) {
 beforeEach(() => {
   filesBefore = uploadedFiles();
   logInAs(citizen);
-  prisma.neighborhood.findUnique.mockResolvedValue({ id: 'n1' });
-  prisma.report.create.mockResolvedValue({ id: 'report-1' });
+  prisma.neighborhood.findUnique.mockResolvedValue({ id: NEIGHBORHOOD_ID });
+  prisma.report.create.mockResolvedValue({ id: REPORT_ID });
 });
 
 afterEach(() => {
@@ -75,7 +76,7 @@ describe('POST /submit-report with an image', () => {
     const [stored] = newFiles();
     expect(stored).toMatch(new RegExp(`^[0-9a-f-]{36}\\.${extension}$`));
     expect(prisma.attachment.create).toHaveBeenCalledWith({
-      data: { reportId: 'report-1', url: `/uploads/${stored}`, mimeType, sizeBytes: content.length },
+      data: { reportId: REPORT_ID, url: `/uploads/${stored}`, mimeType, sizeBytes: content.length },
     });
   });
 

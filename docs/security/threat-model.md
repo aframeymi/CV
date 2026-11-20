@@ -92,7 +92,7 @@ flowchart LR
 
 | ID | Asset | Where it lives | Most important property |
 |---|---|---|---|
-| A1 | User personal data: names, emails, phone numbers | Neon, Firebase | Confidentiality |
+| A1 | User personal data: names and emails | Neon, Firebase | Confidentiality |
 | A2 | User passwords | Firebase only | Confidentiality |
 | A3 | Session cookies | `session` browser cookie, a Firebase session cookie | Confidentiality, authenticity |
 | A4 | Report content and status history | Neon | Integrity |
@@ -125,7 +125,7 @@ This table shows the protection each route has **today**. "Verified login" means
 | `GET /`, `/sign_in`, `/sign_up`, `/graph` | No | Not needed | Public pages |
 | `GET /api/stats` | No | Not needed | Totals only, no personal data |
 | `GET /report` | No | Not needed | Form only, submission requires login |
-| `GET /track` | No | Not needed | Lists every report, with no paging |
+| `GET /track` | No | Not needed | Lists 20 reports per page, without author data (T-29) |
 | `GET /profile` | Verified login | Not needed | Shows static content |
 | `POST /submit-report` | Verified login | Not needed | One JPEG, PNG, or WebP image of at most 5 MB, checked by content |
 | `GET /track/:id/edit` | Verified login | Author or admin | Fixed in Step 2 (T-20) |
@@ -176,7 +176,7 @@ The application runs entirely on managed cloud services, so there is no server h
 | T-11 | Password guessing and credential stuffing, because login has no rate limit | S | A2, A3 | High | Open | Step 6 |
 | T-12 | A stolen token stayed valid after logout, because logout only cleared the browser cookie. **Fixed:** sessions are one-day Firebase session cookies, logout revokes them at Firebase, and every request checks for revocation. [`session-service.js`](../../src/services/session-service.js), tested in [`auth.test.js`](../../tests/Jest/auth.test.js) | S | A3 | Medium | Mitigated | Step 3 |
 | T-13 | Account enumeration and internal detail exposure through raw Firebase error messages. **Fixed:** login gives one message for a wrong email or password, password reset gives one notice whether or not the account exists, and Firebase codes are never shown. Registration still says when an email is taken, see section 8. [`auth-controller.js`](../../src/controllers/auth-controller.js) | I | A1 | Medium | Mitigated | Step 3 |
-| T-14 | Weak passwords, because the server sets no password policy beyond the Firebase minimum of 6 characters. Registration now checks that both passwords match | S | A2 | Medium | Open | Step 5 |
+| T-14 | Weak passwords, because Firebase accepted 6 characters. **Fixed:** new passwords need at least 12 characters, with no composition rules (NIST SP 800-63B). Login still accepts older, shorter passwords so no account is locked out. Firebase's password policy is set to the same minimum in notify mode, which covers passwords set on Firebase's own reset page. [`forms.js`](../../src/validation/forms.js), tested in [`forms.test.js`](../../tests/Jest/forms.test.js) and [`auth.test.js`](../../tests/Jest/auth.test.js) | S | A2 | Medium | Mitigated | Step 5 |
 | T-15 | Password hashes were stored in Neon although Firebase handles login, so a database leak exposed more than it needed to. **Fixed:** the column and the bcrypt dependency are removed. [`drop_stored_password_hashes`](../../prisma/migrations/20261120090000_drop_stored_password_hashes/migration.sql) | I | A2 | Medium | Mitigated | Step 3 |
 | T-16 | Spam accounts and email flooding through registration and password reset | D, S | A9 | Medium | Open | Step 6 |
 
@@ -199,11 +199,11 @@ The application runs entirely on managed cloud services, so there is no server h
 
 | ID | Threat | STRIDE | Assets | Risk | Status | Fix |
 |---|---|---|---|---|---|---|
-| T-25 | SQL injection | T, I | A1, A4 | Low | Mitigated | Prisma parameterises queries. The one raw query takes no user input, and will move to `$queryRaw` in Step 5 |
+| T-25 | SQL injection | T, I | A1, A4 | Low | Mitigated | Prisma parameterises queries. The one raw query takes no user input and uses `$queryRaw`, which sends any value added later as a parameter. IDs from users must match Prisma's format before any query runs |
 | T-26 | Stored XSS through report text | T, E | A3 | Low | Mitigated | EJS `<%= %>` escapes output, covered by a test in [`reports.test.js`](../../tests/Jest/reports.test.js) |
-| T-27 | Script breakout from unescaped JSON in [`report.ejs`](../../views/report.ejs). The data comes from the seed, not from users | T | A3 | Low | Open | Step 5 |
-| T-28 | Oversized or wrongly typed input, because fields are only checked for being present | T, D | A4, A9 | Medium | Open | Step 5 |
-| T-29 | Slow pages and memory pressure, because `/track` loads every report with no paging | D | A9 | Medium | Open | Step 5 |
+| T-27 | Script breakout from unescaped JSON in [`report.ejs`](../../views/report.ejs). The data comes from the seed, not from users. **Fixed:** the JSON is written with every `<` escaped, so no value can end the script. [`script-json.js`](../../src/utils/script-json.js), tested in [`pages.test.js`](../../tests/Jest/pages.test.js) | T | A3 | Low | Mitigated | Step 5 |
+| T-28 | Oversized or wrongly typed input, because fields were only checked for being present, and editing a report checked nothing. **Fixed:** every form is checked on the server against one set of rules: required fields, maximum lengths, email format, and ID format. Fields sent twice are refused and fields a form does not define are dropped. [`forms.js`](../../src/validation/forms.js), tested in [`forms.test.js`](../../tests/Jest/forms.test.js) and [`reports.test.js`](../../tests/Jest/reports.test.js) | T, D | A4, A9 | Medium | Mitigated | Step 5 |
+| T-29 | Slow pages and memory pressure, because `/track` loaded every report with no paging. **Fixed:** 20 reports per page, loading only the fields the page shows. [`report-listing.js`](../../src/services/report-listing.js), tested in [`reports.test.js`](../../tests/Jest/reports.test.js) | D | A9 | Medium | Mitigated | Step 5 |
 
 **Browser protections**
 
@@ -219,7 +219,7 @@ The application runs entirely on managed cloud services, so there is no server h
 |---|---|---|---|---|---|---|
 | T-33 | Stack traces can reach users, because there is no central error handler | I | A10 | Medium | Open | Step 7 |
 | T-34 | Actions cannot be traced: logins, denied access, and report edits leave no audit record, so a user can deny having made a change | R | A4 | Medium | Open | Step 7 |
-| T-35 | Phone numbers are required at registration but are never used, so the application holds personal data it does not need | I | A1 | Low | Open | To be decided |
+| T-35 | Phone numbers were required at registration but never used, so the application held personal data it did not need. **Fixed:** the field is gone and a migration drops the stored numbers (data minimisation) | I | A1 | Low | Mitigated | Step 5 |
 
 ### 6.5 Development and operations
 

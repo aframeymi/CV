@@ -25,7 +25,7 @@ function fakeStatisticsData() {
   prisma.user.findMany.mockResolvedValue([
     { firstName: 'Bob', lastName: 'Brown', email: 'bob@example.com', _count: { reports: 5 } },
   ]);
-  prisma.$queryRawUnsafe.mockResolvedValue([{ city: 'Berlin', status: 'OPEN', count: 4 }]);
+  prisma.$queryRaw.mockResolvedValue([{ city: 'Berlin', status: 'OPEN', count: 4 }]);
 }
 
 beforeEach(fakeStatisticsData);

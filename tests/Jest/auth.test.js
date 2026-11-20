@@ -101,6 +101,14 @@ describe('POST /api/login', () => {
     expect(response.text).toContain('Too many attempts');
   });
 
+  it('refuses a malformed email address before contacting Firebase', async () => {
+    const response = await postForm('/api/login', { ...credentials, email: 'not-an-email' });
+
+    expect(response.status).toBe(422);
+    expect(response.text).toContain('Please enter a valid email address.');
+    expect(signInWithPassword).not.toHaveBeenCalled();
+  });
+
   it('asks for both fields before contacting Firebase', async () => {
     const response = await postForm('/api/login', { email: credentials.email });
 
@@ -165,7 +173,6 @@ describe('POST /api/register', () => {
   const form = {
     name: 'Ada',
     surname: 'Lovelace',
-    phone: '0301234567',
     email: 'ada@example.org',
     password: 'analytical engine',
     confirm_password: 'analytical engine',
@@ -197,10 +204,10 @@ describe('POST /api/register', () => {
       email: 'ada@example.org',
       firstName: 'Ada',
       lastName: 'Lovelace',
-      phone: '0301234567',
       roleId: 'role-citizen',
     });
     expect(data).not.toHaveProperty('passwordHash');
+    expect(data).not.toHaveProperty('phone');
     expect(JSON.stringify(data)).not.toContain(form.password);
   });
 
@@ -225,9 +232,25 @@ describe('POST /api/register', () => {
     expect(signUpWithPassword).not.toHaveBeenCalled();
   });
 
+  it('refuses a password shorter than 12 characters before contacting Firebase', async () => {
+    const response = await postForm('/api/register', { ...form, password: 'too short', confirm_password: 'too short' });
+
+    expect(response.status).toBe(422);
+    expect(response.text).toContain('at least 12 characters');
+    expect(signUpWithPassword).not.toHaveBeenCalled();
+  });
+
+  it('asks for a name and surname before contacting Firebase', async () => {
+    const response = await postForm('/api/register', { ...form, surname: '' });
+
+    expect(response.status).toBe(422);
+    expect(response.text).toContain('Please enter surname.');
+    expect(signUpWithPassword).not.toHaveBeenCalled();
+  });
+
   it.each([
     ['EMAIL_EXISTS', 409, 'already exists'],
-    ['WEAK_PASSWORD', 422, 'at least 6 characters'],
+    ['WEAK_PASSWORD', 422, 'at least 12 characters'],
     ['INVALID_EMAIL', 422, 'valid email address'],
     ['TOO_MANY_ATTEMPTS_TRY_LATER', 429, 'Too many attempts'],
   ])('explains %s on the registration page', async (code, status, message) => {
