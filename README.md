@@ -191,7 +191,15 @@ The application never grants the admin role itself, and the seed never creates a
    WHERE email = 'person@example.org' AND firebase_uid IS NOT NULL;
    ```
 
-3. Check that the result says `UPDATE 1`. The role is read on every request, so it applies straight away.
+3. Check that it worked. Neon's SQL editor reports "Statement executed successfully" even when no row matched, for example because of a typo in the address, so run:
+
+   ```sql
+   SELECT u.email, r.title
+   FROM users u JOIN "Role" r ON r.id = u.role_id
+   WHERE u.email = 'person@example.org';
+   ```
+
+   It should return one row with `Admin`. The role is read on every request, so it applies straight away: `/admin/analytics` now opens for them.
 
 To remove the role, run the same statement with `'Citizen'` instead of `'Admin'`.
 
