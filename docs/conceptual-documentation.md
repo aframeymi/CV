@@ -17,8 +17,8 @@ A citizen can:
 - Register and authenticate.
 - Create a report about a local issue.
 - Add a title, description, neighbourhood, and optional image.
-- View reports and follow their progress.
-- Edit or delete reports where the application permits it.
+- View all reports on the tracking page, newest first.
+- Edit or delete their own reports, after verifying their email address.
 
 ### Administrator
 
@@ -34,34 +34,38 @@ The project is a web application. The browser is the primary client. The Express
 
 ```mermaid
 flowchart TB
-    subgraph Client[Client]
-        Browser[Web browser]
+    Browser[Web browser]
+
+    subgraph Hosting[Hosting]
+        Cloudflare[Cloudflare]
+        RenderProxies[Render proxies]
     end
 
-    subgraph Application[Community Voice application]
-        Express[Express server]
-        AuthMiddleware[Cookie and token middleware]
+    subgraph Application[Community Voice on Render]
+        Security[Security middleware:<br/>headers, CSRF tokens, rate limits]
+        Session[Session check]
         Routes[Routes and controllers]
+        Validation[Form validation]
         Views[EJS views]
-        Uploads[Static files and uploads]
+        Errors[Error handler and security log]
         Prisma[Prisma data access]
+        Uploads[(Uploaded images)]
     end
 
     Firebase[(Firebase Authentication)]
-    PostgreSQL[(PostgreSQL)]
+    Neon[(PostgreSQL on Neon)]
 
-    Browser --> Express
-    Express --> AuthMiddleware
-    AuthMiddleware --> Firebase
-    Express --> Routes
-    Routes --> Views
-    Views --> Browser
+    Browser -->|HTTPS| Cloudflare --> RenderProxies --> Security --> Session --> Routes
+    Session -->|verify session cookie| Firebase
+    Routes -->|login, registration, password reset| Firebase
+    Routes --> Validation
+    Routes --> Prisma -->|TLS| Neon
     Routes --> Uploads
-    Routes --> Prisma
-    Prisma --> PostgreSQL
+    Routes --> Views -->|HTML page| Browser
+    Routes -. unexpected errors .-> Errors
 ```
 
-**Figure 1: Community Voice system architecture.** Users interact with Community Voice through a web browser. Express handles requests, authentication middleware verifies Firebase tokens, routes and controllers coordinate application behaviour, Prisma provides access to PostgreSQL, EJS views generate web pages, and the upload system handles report images.
+**Figure 1: Community Voice system architecture.** A request from the browser travels over HTTPS through Cloudflare and Render's proxies to the application. The security middleware sends the security headers and refuses forms without a valid CSRF token or from a client over its rate limit. The session check asks Firebase whether the session cookie is valid and not revoked. Routes and controllers then validate the form, read and write data through Prisma, which talks to PostgreSQL on Neon over TLS, save uploaded images, and render the page with an EJS view. Unexpected errors go to one error handler, which shows only an error ID and writes the details to the log.
 
 ## 4. Core workflow
 
@@ -100,9 +104,74 @@ The data model is relational:
 
 The report status is restricted to `OPEN`, `IN_PROGRESS`, and `RESOLVED`. This prevents arbitrary status text from entering the database and makes reporting more consistent.
 
-![Community Voice database relationships](<../CV Tables.png>)
+```mermaid
+erDiagram
+    Role ||--o{ users : "is given to"
+    cities ||--o{ neighborhoods : contains
+    users ||--o{ reports : writes
+    neighborhoods ||--o{ reports : "is the location of"
+    reports ||--o{ attachments : has
+    reports ||--o{ status_change : "has a history of"
+    reports }o--o{ categories : "is tagged with"
 
-**Figure 2: Community Voice database relationships.** This entity-relationship diagram shows how users, roles, reports, locations, attachments, status changes, and categories are related in the database.
+    Role {
+        string id PK
+        string title UK "Citizen or Admin"
+        string description
+    }
+    users {
+        string id PK
+        datetime created_at
+        string first_name
+        string last_name
+        string email UK
+        string firebase_uid UK "links the profile to Firebase"
+        string role_id FK
+    }
+    cities {
+        string id PK
+        string name UK
+        string code
+    }
+    neighborhoods {
+        string id PK
+        string name "unique within its city"
+        string city_id FK
+        datetime created_at
+    }
+    reports {
+        string id PK
+        datetime created_at
+        string title
+        text description
+        string image_url
+        Status status "OPEN, IN_PROGRESS, or RESOLVED"
+        string author_id FK
+        string neighborhood_id FK
+    }
+    attachments {
+        string id PK
+        string report_id FK
+        string url
+        string mime_type
+        int size_bytes
+        datetime created_at
+    }
+    status_change {
+        string id PK
+        string report_id FK
+        Status from_status
+        Status to_status
+        datetime changed_at
+        string changed_by
+    }
+    categories {
+        string id PK
+        string name UK
+    }
+```
+
+**Figure 2: Community Voice database relationships.** Each box is a table, with the names used in the database. PK marks the primary key, FK a reference to another table, and UK a value that must be unique. Passwords are not stored here: Firebase keeps them. This diagram is written in Mermaid, so it lives in Git next to `prisma/schema.prisma` and is updated in the same pull request as any schema change.
 
 ## 6. Architectural responsibilities
 
@@ -131,6 +200,6 @@ The security of the application, including authentication, authorisation, valida
 
 Before deployment, verify that:
 
-- The deployment runs Node.js 22 or later and has every environment variable from `.env.example`, with its own `CSRF_SECRET`.
+- The deployment runs Node.js 22 and has every environment variable from `.env.example`, with its own `CSRF_SECRET`. The README lists the values for Render.
 - The database migrations have been applied with `npx prisma migrate deploy`.
 - Uploaded files are kept on storage that survives a redeploy, or the loss of images is accepted (T-45 in the threat model).
