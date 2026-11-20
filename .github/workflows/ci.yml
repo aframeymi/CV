@@ -1,0 +1,65 @@
+# Checks every pull request and every change to main. Branch protection on main requires them to pass.
+# Actions are pinned to a full commit SHA, so a moved or hijacked tag cannot change what runs here.
+# Dependabot keeps the pins up to date.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Read-only access to the repository is all these jobs need
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # The tests replace Firebase and the database with fakes, so they need no secrets
+      - run: npm test
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      # Fails on critical vulnerabilities in production dependencies. The remaining high ones are in
+      # the Prisma CLI only and are accepted in docs/security/threat-model.md, section 8.
+      - run: npm audit --omit=dev --audit-level=critical
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The whole history, so a secret removed in a later commit is still found
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Comments on pull requests would need write access, which this workflow does not grant
+          GITLEAKS_ENABLE_COMMENTS: false
