@@ -6,6 +6,7 @@ import router from './routes/index.js';
 import middleware from './middleware/index.js';
 import { checkCsrfToken, provideCsrfToken, requireCsrfToken } from './middleware/csrf-protection.js';
 import { receiveImage } from './middleware/image-upload.js';
+import { limitReportSubmissions } from './middleware/rate-limits.js';
 import { securityHeaders } from './middleware/security-headers.js';
 import { deleteImage, saveImage, UnsupportedImageError } from './services/image-storage.js';
 import { loadReportForModification } from './middleware/report-access.js';
@@ -73,8 +74,13 @@ app.get('/report', async (req, res) => {
   }
 });
 
+const limitReports = limitReportSubmissions((req, res) =>
+  res.status(429).send('You have sent many reports in a short time. Please try again in an hour.')
+);
+
 // New Report Submission. The image is saved only once the rest of the form is valid.
-app.post('/submit-report', middleware.requireVerifiedUser, receiveImage, checkCsrfToken, async (req, res) => {
+// The limit comes before the image is read, so a client over the limit cannot fill the memory either.
+app.post('/submit-report', middleware.requireVerifiedUser, limitReports, receiveImage, checkCsrfToken, async (req, res) => {
   const { values, problem } = checkForm(newReportForm, req.body);
   if (problem) {
     return res.status(422).send(problem);

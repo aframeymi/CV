@@ -6,7 +6,7 @@ import app from '../../src/app.js';
 import prisma from '../../prismaClient.js';
 import { signInWithPassword } from '../../src/services/firebase-identity.js';
 import { SESSION_COOKIE, citizen, logInAs } from './helpers/auth.js';
-import { csrfCredentials, postForm } from './helpers/csrf.js';
+import { csrfCredentials, postForm } from './helpers/browser.js';
 import { NEIGHBORHOOD_ID, REPORT_ID } from './helpers/ids.js';
 
 jest.mock('../../src/services/firebase-identity.js', () => ({

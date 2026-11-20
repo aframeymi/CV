@@ -13,7 +13,7 @@ import {
 import prisma from '../../prismaClient.js';
 import { createSessionCookie, revokeRefreshTokens, verifySessionCookie } from './mocks/firebase.js';
 import { SESSION_COOKIE, citizen, logInAs } from './helpers/auth.js';
-import { postForm } from './helpers/csrf.js';
+import { postForm } from './helpers/browser.js';
 
 jest.mock('../../src/services/firebase-identity.js', () => {
   const actual = jest.requireActual('../../src/services/firebase-identity.js');

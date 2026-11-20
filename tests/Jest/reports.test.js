@@ -4,7 +4,7 @@ import app from '../../src/app.js';
 import prisma from '../../prismaClient.js';
 import { SESSION_COOKIE, admin, citizen, logInAs } from './helpers/auth.js';
 import { NEIGHBORHOOD_ID, OTHER_REPORT_ID, REPORT_ID } from './helpers/ids.js';
-import { postForm } from './helpers/csrf.js';
+import { postForm } from './helpers/browser.js';
 
 const validForm = { title: 'Broken light', description: 'Out since Monday', neighborhoodId: NEIGHBORHOOD_ID };
 const ownReport = { id: REPORT_ID, authorId: citizen.id, title: 'Mine', description: 'text' };

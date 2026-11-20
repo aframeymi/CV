@@ -7,7 +7,7 @@ import app from '../../src/app.js';
 import prisma from '../../prismaClient.js';
 import { SESSION_COOKIE, citizen, logInAs } from './helpers/auth.js';
 import { NEIGHBORHOOD_ID, REPORT_ID } from './helpers/ids.js';
-import { csrfCredentials, postForm } from './helpers/csrf.js';
+import { csrfCredentials, newVisitorAddress, postForm } from './helpers/browser.js';
 
 const UPLOAD_DIRECTORY = path.join(process.cwd(), 'public', 'uploads');
 const FIVE_MB = 5 * 1024 * 1024;
@@ -31,7 +31,11 @@ function newFiles() {
 // Sends the report form as a browser does: multipart, with the CSRF token as one of its fields
 async function submitWithImages(images, { form = validForm, sessionCookie = SESSION_COOKIE } = {}) {
   const { token, cookies } = await csrfCredentials(sessionCookie);
-  const call = request(app).post('/submit-report').set('Cookie', cookies).field('_csrf', token);
+  const call = request(app)
+    .post('/submit-report')
+    .set('X-Forwarded-For', newVisitorAddress())
+    .set('Cookie', cookies)
+    .field('_csrf', token);
   Object.entries(form).forEach(([field, value]) => call.field(field, value));
   images.forEach(({ content, fileName, contentType }) =>
     call.attach('image', content, { filename: fileName, contentType })
