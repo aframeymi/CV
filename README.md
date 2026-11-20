@@ -7,6 +7,7 @@ This README is primarily for developers who want to run, test, or contribute to 
 ## Contents
 
 - [Features](#features)
+- [Project status and known limitations](#project-status-and-known-limitations)
 - [Technology stack](#technology-stack)
 - [Prerequisites](#prerequisites)
 - [Quick start](#quick-start)
@@ -27,6 +28,28 @@ This README is primarily for developers who want to run, test, or contribute to 
 - Report tracking, 20 reports per page, with editing and deletion for the author or an admin.
 - Image uploads handled with Multer and served from the public uploads directory.
 - Administrative statistics, including counts by status, top reporters, and busiest neighbourhoods.
+
+## Project status and known limitations
+
+Community Voice is a student project under active development. The core workflow works: registering, logging in, submitting reports with an image, tracking them, editing and deleting your own reports, and the statistics. The following are known gaps.
+
+**Not built yet.** These parts are visible in the application but are placeholders:
+
+1. **Report status cannot be changed.** Every report stays `OPEN`. No page changes the status, and the tracking page does not show it. The Received, In Process, and Processed tracker at the top of that page is decorative.
+2. **Fixed texts on the tracking page.** "Your report was successfully submitted. You received 50 bonus points." and "234 more similar reports in your area." always appear. Bonus points do not exist.
+3. **Fixed numbers on the home page.** The three report counts are not read from the database.
+4. **Profile page.** The name, account type, and statistics are fixed text, and the settings form does nothing.
+5. **Pages that do not exist yet.** The **Setting** link in the profile menu goes to `/settings`, and the feedback form on the home page posts to `/feedback`. Both show the 404 page.
+6. **Language choice.** The language selected when registering or on the profile page is ignored.
+7. **Categories.** Categories exist in the database, but a report cannot be given one yet.
+
+**Technical limitations:**
+
+8. **Uploaded images on Render.** Images are stored on the server's disk, which a redeploy can clear. Object storage would fix this (T-45 in the [threat model](docs/security/threat-model.md)).
+9. **Browser tests.** The Playwright tests are out of date and will be rewritten. The Jest tests are current and run on every pull request.
+10. **One Firebase project.** Local development and the live site share one Firebase project, so accounts created while testing locally also exist on the live site.
+
+Security limitations and accepted risks are listed in the [threat model](docs/security/threat-model.md).
 
 ## Technology stack
 
