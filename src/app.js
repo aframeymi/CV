@@ -22,6 +22,9 @@ app.use(express.urlencoded({ extended: true }));
 // Static files never need the session, so serve them before it is checked.
 // nosniff stops browsers from treating an uploaded file as anything other than its declared type.
 app.use(express.static('public', { setHeaders: (res) => res.setHeader('X-Content-Type-Options', 'nosniff') }));
+// Chart.js is served from the installed npm package, so pages load no code from other sites
+const CHART_JS = path.join(process.cwd(), 'node_modules', 'chart.js', 'dist', 'chart.umd.js');
+app.get('/vendor/chart.umd.js', (req, res) => res.sendFile(CHART_JS));
 app.use(cookieParser());
 app.use(middleware.attachUserIfPresent);
 app.set('view engine', 'ejs');

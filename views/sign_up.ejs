@@ -19,7 +19,7 @@
         <input type="email" name="email" placeholder="Email" required> <br>
         <input type="password" name="password" placeholder="Password (at least 12 characters)" minlength="12" required> <br>
         <input type="password" name="confirm_password" placeholder="Confirm Password" required> <br>
-        <select name="language" id="language" style="color: #A0D0DF;" required>
+        <select name="language" id="language" class="language-select" required>
         <option value="English" selected>English</option>
         <option value="German">German</option>
         <option value="Persian">Persian</option>
@@ -31,14 +31,14 @@
 
       <%# Show an error message if the server passed one to the page %>
       <% if (typeof error !== 'undefined') { %>
-        <p style="color:red;"><%= error %></p>
+        <p class="form-error" role="alert"><%= error %></p>
       <% } %>
 
       <%# Link to the login page %>
       <p>Already have an account? <a href="/sign_in">SIGN IN</a></p>
     </div>
   </main>
-  <%# Script with the profile menu toggle (callMenu) %>
+  <%# Script with the profile menu toggle %>
   <script src="/script.js"></script>
 </body>
 </html>

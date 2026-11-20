@@ -15,11 +15,11 @@
   </div>
 
   <div class="dropdown">
-    <a href="javascript:void(0)" class="navprofile">
-      <img src="/pp.jpg" alt="profile-pic" onclick="callMenu()">
+    <a href="#" class="navprofile" data-toggles-menu>
+      <img src="/pp.jpg" alt="profile-pic">
     </a>
 
-    <a href="javascript:void(0)" id="navprofile" class="navprofile" onclick="callMenu()">
+    <a href="#" id="navprofile" class="navprofile" data-toggles-menu>
       <%= (typeof user !== 'undefined' && user)
           ? (user.name || user.email || 'User')
           : 'User' %>
@@ -29,8 +29,8 @@
       <% if (typeof user !== 'undefined' && user) { %>
         <a href="/profile">Profile</a>
         <a href="/settings">Setting</a>
-        <form method="POST" action="/api/logout" style="display:block; margin:0; padding:0;">
-          <button type="submit" class="linklike" style="background:none; border:none; padding:12px 16px; width:100%; text-align:left; cursor:pointer;">
+        <form method="POST" action="/api/logout" class="logout-form">
+          <button type="submit" class="linklike">
             Logout
           </button>
         </form>

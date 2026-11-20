@@ -83,9 +83,11 @@ describe('GET /api/stats', () => {
 
 describe('GET /graph', () => {
   it('loads its chart data from the public endpoint, not an admin route', async () => {
-    const response = await request(app).get('/graph');
+    const page = await request(app).get('/graph');
+    const script = await request(app).get('/graph.js');
 
-    expect(response.text).toContain("fetch('/api/stats')");
-    expect(response.text).not.toContain('/admin/');
+    expect(page.text).toContain('<script src="/graph.js">');
+    expect(script.text).toContain("fetch('/api/stats')");
+    expect(page.text + script.text).not.toContain('/admin/');
   });
 });
