@@ -1,6 +1,6 @@
 // Email and password operations through the Firebase Auth REST API.
 // Every call is a stateless HTTP request, so two users' requests can never share a signed-in state.
-import { admin, firebaseApiKey } from '../config/firebase.js';
+import { auth, firebaseApiKey } from '../config/firebase.js';
 
 const IDENTITY_TOOLKIT_URL = 'https://identitytoolkit.googleapis.com/v1/accounts';
 
@@ -30,7 +30,7 @@ export async function sendPasswordResetEmail(email) {
 }
 
 export async function setDisplayName(uid, displayName) {
-  await admin.auth().updateUser(uid, { displayName });
+  await auth.updateUser(uid, { displayName });
 }
 
 async function callIdentityToolkit(action, body) {

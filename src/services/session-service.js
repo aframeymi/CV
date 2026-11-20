@@ -1,5 +1,5 @@
 // Login sessions are Firebase session cookies: signed by Firebase, verified on every request, revocable.
-import { admin } from '../config/firebase.js';
+import { auth } from '../config/firebase.js';
 
 export const SESSION_COOKIE = 'session';
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -8,7 +8,7 @@ const CHECK_REVOKED = true;
 
 // Exchanges a fresh Firebase ID token for a session cookie and sets it on the response
 export async function startSession(req, res, idToken) {
-  const sessionCookie = await admin.auth().createSessionCookie(idToken, { expiresIn: SESSION_DURATION_MS });
+  const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn: SESSION_DURATION_MS });
   res.cookie(SESSION_COOKIE, sessionCookie, { ...cookieOptions(req), maxAge: SESSION_DURATION_MS });
 }
 
@@ -19,7 +19,7 @@ export async function readSession(req) {
     return null;
   }
   try {
-    return await admin.auth().verifySessionCookie(sessionCookie, CHECK_REVOKED);
+    return await auth.verifySessionCookie(sessionCookie, CHECK_REVOKED);
   } catch {
     return null;
   }
@@ -31,7 +31,7 @@ export async function endSession(req, res) {
   const session = await readSession(req);
   res.clearCookie(SESSION_COOKIE, cookieOptions(req));
   if (session) {
-    await admin.auth().revokeRefreshTokens(session.sub);
+    await auth.revokeRefreshTokens(session.sub);
   }
 }
 
