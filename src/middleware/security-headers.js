@@ -28,7 +28,22 @@ const CONTENT_SECURITY_POLICY = {
 
 const ONE_YEAR_SECONDS = 365 * 24 * 60 * 60;
 
-export const securityHeaders = helmet({
+// Browser features the site never uses, switched off for its pages and for the frames in them,
+// so injected code or an embedded page cannot ask for the camera, the location, or payments
+const PERMISSIONS_POLICY = [
+  'accelerometer=()',
+  'camera=()',
+  'geolocation=()',
+  'gyroscope=()',
+  'magnetometer=()',
+  'microphone=()',
+  'payment=()',
+  'usb=()',
+].join(', ');
+
+// Cross-Origin-Embedder-Policy stays off: it would block the Google Maps frame, which sends no
+// header allowing it to be embedded that way
+const helmetHeaders = helmet({
   contentSecurityPolicy: CONTENT_SECURITY_POLICY,
   // Browsers ignore HSTS over plain HTTP, so local development is not affected
   strictTransportSecurity: { maxAge: ONE_YEAR_SECONDS, includeSubDomains: true },
@@ -36,3 +51,17 @@ export const securityHeaders = helmet({
   // does the same for current browsers, X-Frame-Options for older ones.
   xFrameOptions: { action: 'deny' },
 });
+
+function setPermissionsPolicy(req, res, next) {
+  res.setHeader('Permissions-Policy', PERMISSIONS_POLICY);
+  next();
+}
+
+export const securityHeaders = [helmetHeaders, setPermissionsPolicy];
+
+// Pages can show the logged-in user's name and always carry a CSRF token, so neither the browser
+// nor a proxy may keep a copy. Static files are registered before this and stay cacheable.
+export function preventCaching(req, res, next) {
+  res.setHeader('Cache-Control', 'no-store');
+  next();
+}

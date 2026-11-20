@@ -144,6 +144,33 @@ describe('a form posted with the token from the page', () => {
   });
 });
 
+// ZAP's baseline scan reported "cookie poisoning" and a "user-controllable attribute" for _csrf.
+// These tests show that a submitted value never reaches the cookie or the page.
+describe('a submitted _csrf value', () => {
+  const injected = '"><script>alert(1)</script>';
+
+  it('is never copied into the CSRF cookie', async () => {
+    const response = await request(app).post('/api/reset-password').type('form').send({ _csrf: injected });
+
+    const cookies = (response.headers['set-cookie'] ?? []).join(';');
+    expect(cookies).not.toContain('script');
+    expect(cookies).not.toContain(encodeURIComponent(injected));
+  });
+
+  it('is never written into the page, even next to a valid token', async () => {
+    const { token, cookies } = await csrfCredentials();
+
+    const response = await request(app)
+      .post('/api/reset-password')
+      .set('Cookie', cookies)
+      .type('form')
+      .send({ _csrf: token, email: injected });
+
+    expect(response.text).not.toContain(injected);
+    expect(response.text).toContain(`name="_csrf" value="${token}"`);
+  });
+});
+
 describe('the CSRF cookie', () => {
   function csrfCookieFrom(response) {
     return response.headers['set-cookie'].find((cookie) => cookie.startsWith('csrf-token='));

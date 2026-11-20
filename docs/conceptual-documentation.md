@@ -24,7 +24,7 @@ A citizen can:
 
 An administrator has elevated responsibility for managing the platform and can access administrative reporting and analytics. The data model represents administrator and citizen roles separately so that access decisions can be made based on role.
 
-Administrative authorisation should be enforced by the relevant middleware before production deployment. The presence of an administrative route alone does not guarantee that only administrators can access it.
+Every administrative route requires a logged-in, verified administrator, enforced by middleware. Accounts are always created as citizens; an administrator can only be made directly in the database.
 
 ## 3. System boundary
 
@@ -68,25 +68,24 @@ flowchart TB
 ### Authentication
 
 1. The user submits registration details.
-2. Firebase creates the authentication identity and can send a verification email.
-3. The application creates a corresponding local user profile with a role.
-4. During login, Firebase returns an identity token.
-5. The server stores the token in an `access_token` cookie and verifies it when protected routes are accessed.
+2. The server checks the form, then Firebase creates the authentication identity and sends a verification email.
+3. The application creates a corresponding local user profile with the citizen role, linked by Firebase ID.
+4. During login, the server sends the email and password to Firebase, which returns an identity token.
+5. The server exchanges the token for a Firebase session cookie, which is HttpOnly and valid for one day. Every protected request verifies the cookie and checks that it has not been revoked; logout revokes it.
 
 ### Report creation
 
 1. The authenticated user opens the report form.
 2. The user submits report details and, optionally, an image.
-3. Authentication middleware verifies the token.
+3. Authentication middleware verifies the session cookie and requires a verified email address.
 4. The application finds the local user profile.
-5. Prisma creates the report with status `OPEN`.
-6. If an image was supplied, the application stores its file path and attachment metadata.
-7. A status-history record records the initial state.
-8. The user is redirected to the tracking page.
+5. The CSRF token and the form fields are checked, and the image, if any, is recognised by its content.
+6. The image is saved under a random name, and Prisma creates the report with status `OPEN`, its first status-history record, and the attachment metadata in one transaction.
+7. The user is redirected to the tracking page.
 
 ### Tracking and administration
 
-The tracking view retrieves reports from PostgreSQL and orders them by creation time. Administrative endpoints aggregate report data by status and identify high-volume reporters and neighbourhoods. These aggregates support monitoring and future operational decision-making.
+The tracking view retrieves reports from PostgreSQL 20 at a time, newest first. Administrative endpoints aggregate report data by status and identify high-volume reporters and neighbourhoods. These aggregates support monitoring and future operational decision-making.
 
 ## 5. Domain model and database design
 
@@ -112,10 +111,11 @@ The report status is restricted to `OPEN`, `IN_PROGRESS`, and `RESOLVED`. This p
 | Browser and EJS views | Present forms, pages, report information, and user actions |
 | Express | Receive HTTP requests and send HTML or JSON responses |
 | Routes | Map URLs and HTTP methods to application behaviour |
-| Middleware | Parse requests, read cookies, attach user information, and verify tokens |
+| Middleware | Send security headers, check CSRF tokens and rate limits, verify sessions, and handle errors |
+| Validation | Check every form against the rules in `src/validation/forms.js` |
 | Controllers | Coordinate authentication and user-profile operations |
-| Multer | Receive uploaded image files |
-| Firebase | Authenticate users and verify identity tokens |
+| Multer | Receive uploaded image files into memory, within strict limits |
+| Firebase | Check passwords, and sign and verify session cookies |
 | Prisma | Provide typed access to PostgreSQL models |
 | PostgreSQL | Persist users, reports, locations, statuses, and attachments |
 
@@ -127,12 +127,10 @@ Prisma provides a central schema for relationships and constraints. Express keep
 
 ## 8. Implementation considerations
 
-Before submission or deployment, verify that:
+The security of the application, including authentication, authorisation, validation, uploads, and the development lifecycle, is described in the [security overview](security/README.md), with every threat and its status in the [threat model](security/threat-model.md).
 
-- The `package.json` start scripts point to the actual application entry point.
-- The migration and seed commands point to the actual Prisma directory.
-- Every report-creation path supplies all fields required by the Prisma schema, including the report neighbourhood where required.
-- Uploaded files are validated and stored safely in production.
-- Administrative routes enforce administrator authorisation rather than relying only on route naming.
+Before deployment, verify that:
 
-These checks prevent readers from assuming that a successful architecture diagram guarantees a production-ready deployment.
+- The deployment runs Node.js 22 or later and has every environment variable from `.env.example`, with its own `CSRF_SECRET`.
+- The database migrations have been applied with `npx prisma migrate deploy`.
+- Uploaded files are kept on storage that survives a redeploy, or the loss of images is accepted (T-45 in the threat model).

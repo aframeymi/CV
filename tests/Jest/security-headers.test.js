@@ -62,3 +62,28 @@ describe.each(['/', '/style.css', '/does-not-exist'])('other headers on %s', (ur
     expect(response.headers['x-powered-by']).toBeUndefined();
   });
 });
+
+describe('Permissions-Policy', () => {
+  it('switches off browser features the site never uses', async () => {
+    const response = await request(app).get('/');
+
+    const policy = response.headers['permissions-policy'];
+    ['camera=()', 'microphone=()', 'geolocation=()', 'payment=()', 'usb=()'].forEach((feature) =>
+      expect(policy).toContain(feature)
+    );
+  });
+});
+
+describe('caching', () => {
+  it.each(['/', '/sign_in', '/does-not-exist'])('forbids storing %s, which may hold personal data', async (url) => {
+    const response = await request(app).get(url);
+
+    expect(response.headers['cache-control']).toBe('no-store');
+  });
+
+  it('lets browsers keep static files', async () => {
+    const response = await request(app).get('/style.css');
+
+    expect(response.headers['cache-control']).not.toBe('no-store');
+  });
+});

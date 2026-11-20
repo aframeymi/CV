@@ -10,10 +10,10 @@ Run Community Voice locally and confirm that the application can connect to its 
 
 ### Requirements
 
-- Node.js 18 or later
+- Node.js 22 or later
 - npm 9 or later
 - Git
-- PostgreSQL
+- A PostgreSQL database, for example a Neon development branch
 - A Firebase project configured for email/password authentication
 
 ### Procedure
@@ -31,7 +31,11 @@ Run Community Voice locally and confirm that the application can connect to its 
    npm install
    ```
 
-3. Copy `.env.example` to `.env` in the project root and fill in the database, Firebase, and port variables described in the README. Never commit this file.
+3. Copy `.env.example` to `.env` in the project root and fill in the database, Firebase, `CSRF_SECRET`, and port variables described in the README. Never commit this file. Generate the CSRF secret with:
+
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
 
 4. Generate the Prisma client:
 
@@ -76,6 +80,7 @@ A successful setup should result in all of the following:
 - If tables are missing, run `npx prisma migrate deploy`.
 - If the database connection fails, check `DATABASE_URL` and confirm that the database is reachable.
 - If Firebase fails to initialise, check the variable names and the formatting of `FIREBASE_SERVICE_ACCOUNT`.
+- If the server stops with a message about `CSRF_SECRET`, set it in `.env` as shown in step 3.
 - If port 5000 is occupied, stop the other process or set a different `PORT` in `.env`.
 
 > Before submission, run these commands in a clean environment and confirm that they match the actual repository structure and `package.json` scripts.
@@ -90,15 +95,15 @@ Complete the main citizen workflow from registration to report tracking.
 
 1. Open `http://localhost:5000`.
 2. Select **Register**.
-3. Enter a name, email address, password, and any other requested profile information.
+3. Enter a name, surname, email address, and a password of at least 12 characters.
 4. Submit the form.
-5. If email verification is enabled in the Firebase project, open the verification email and complete verification.
+5. Open the verification email and confirm the address. Reports can only be created after verification.
 6. Sign in with the same account.
 7. Navigate to the report form.
 8. Enter a concise title, for example `Pothole beside the market`.
 9. Describe the problem, including its approximate location and why it needs attention.
 10. Select the correct neighbourhood.
-11. Add an image if one helps explain the issue.
+11. Add an image if one helps explain the issue: one JPEG, PNG, or WebP file of at most 5 MB.
 12. Submit the report.
 13. Open the tracking page and confirm that the report appears with status `OPEN`.
 14. Open the report's edit action and correct a non-critical detail, if needed.
@@ -111,7 +116,7 @@ The report should appear on the tracking page and remain associated with the aut
 
 ### If the report does not appear
 
-Check the server terminal for an error and confirm that:
+Check the server terminal. Errors are logged as JSON lines with an error ID, the same ID the error page shows. Also confirm that:
 
 - The user is authenticated.
 - The selected neighbourhood exists in the database.
@@ -126,8 +131,8 @@ Verify the smallest possible Express response.
 
 ### Procedure
 
-1. Open the Express application entry point.
-2. Add the following route before the server starts listening:
+1. Open `src/app.js`.
+2. Add the following route above the lines `app.use(notFound);` and `app.use(handleError);` at the end of the file. A route added below them is never reached, because the 404 handler answers first:
 
    ```js
    app.get('/hello', (req, res) => {
@@ -158,13 +163,16 @@ Remove the route after completing the exercise unless `/hello` is intentionally 
 
 ## 4. Run tests
 
-Run the Jest test suite:
+Run the Jest test suite and the linter:
 
 ```bash
 npm test
+npm run lint
 ```
 
-Run Playwright browser tests when the test environment and application server are available:
+The Jest tests replace Firebase and the database with fakes, so they need no `.env`. The same checks run on GitHub for every pull request.
+
+The Playwright browser tests are out of date and will be rewritten. Run them only when the test environment and application server are available:
 
 ```bash
 npx playwright test
@@ -192,3 +200,5 @@ A successful test run should report that the configured tests have passed. If th
 - If cities or neighbourhoods are missing, run `npm run prisma:seed`. If demo reports are missing, run `npm run prisma:seed:demo`, only against a development database.
 - If Firebase authentication fails, check all Firebase environment variables and the service-account JSON.
 - If uploaded images cannot be displayed, confirm that `public/uploads` exists and that the application serves the `public` directory as static content.
+- If a form says "This form has expired", reload the page and submit it again. The page was loaded before you logged in or out, or before `CSRF_SECRET` changed, so its CSRF token no longer matches.
+- If login says "Too many attempts", wait 15 minutes. During development, restarting the server also resets the limits.
