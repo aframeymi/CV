@@ -197,8 +197,33 @@ To remove the role, run the same statement with `'Citizen'` instead of `'Admin'`
 
 ## Deployment
 
-A deployed instance is available at:
+A deployed instance runs on Render at <https://cv-wluv.onrender.com>, with the `production` branch of the Neon database.
 
-<https://cv-wluv.onrender.com>
+### Render settings
 
-The deployment environment must provide the same required environment variables as a local installation. Never copy local secrets into source control.
+| Setting | Value |
+|---|---|
+| Build Command | `npm ci && npm run deploy:prepare` |
+| Start Command | `npm start` |
+| Node.js version | 22, taken from `engines` in `package.json` |
+
+`npm run deploy:prepare` generates the Prisma client, applies any migrations that have not run yet (`prisma migrate deploy`, which never resets data), and adds the reference data. It never adds demo data or an admin. If any part fails, the build fails and Render keeps the previous version running. The free plan has no separate pre-deploy step, so this runs during the build.
+
+### Environment variables on Render
+
+| Variable | Value |
+|---|---|
+| `DATABASE_URL` | Connection string of the Neon `production` branch, never the development one |
+| `FIREBASE_API_KEY` | As in `.env` |
+| `FIREBASE_SERVICE_ACCOUNT` | The service-account JSON on one line |
+| `CSRF_SECRET` | Its own random value, generated as described in [Configure the environment](#2-configure-the-environment), never the local one |
+| `NODE_ENV` | `production` |
+
+Render provides `PORT` itself. Never copy local secrets into source control.
+
+### After a deployment
+
+1. Open the site and check that the pages load over HTTPS.
+2. Register or log in, and submit a report with an image.
+3. In Render's **Logs**, check that the security events show your own IP address in `ip`. The rate limits count per address, so they only work if Render passes on the visitor's address.
+4. The first time only: make an admin as described in [Accounts and roles](#accounts-and-roles), using the SQL editor on the `production` branch.
