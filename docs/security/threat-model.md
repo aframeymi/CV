@@ -225,9 +225,9 @@ The application runs entirely on managed cloud services, so there is no server h
 
 | ID | Threat | STRIDE | Assets | Risk | Status | Fix |
 |---|---|---|---|---|---|---|
-| T-40 | Known vulnerabilities in dependencies: `npm audit` reports 31 in production dependencies, 4 of them critical | T, E, D | A9, A10 | High | Open | Step 8 |
-| T-41 | A secret is committed by mistake. None found in the history so far, but no automated check prevents it | I | A6, A7 | Medium | Open | Step 8 |
-| T-42 | Unreviewed or untested code reaches production, because there is no CI and `main` is not protected | T | A10 | Medium | Open | Step 8 |
+| T-40 | Known vulnerabilities in dependencies: `npm audit` reported 30 in production dependencies, 4 of them critical. **Fixed:** updates within the allowed ranges and `firebase-admin` 14 leave 4, all high and all in the Prisma CLI, which is accepted in section 8. CI fails on any critical vulnerability, and Dependabot proposes updates every week. [`ci.yml`](../../.github/workflows/ci.yml), [`dependabot.yml`](../../.github/dependabot.yml) | T, E, D | A9, A10 | High | Mitigated | Step 8 |
+| T-41 | A secret is committed by mistake. None found in the history so far. **Fixed:** GitHub push protection refuses a push that contains a known kind of secret, GitHub secret scanning reports any that get through, and gitleaks scans the whole history in CI | I | A6, A7 | Medium | Mitigated | Step 8 |
+| T-42 | Unreviewed or untested code reaches production, because there was no CI and `main` was not protected. **Fixed:** every pull request runs the tests, ESLint with security rules, `npm audit`, gitleaks, and CodeQL. Branch protection makes `main` accept changes only through pull requests whose checks pass. GitHub Actions are pinned to commit SHAs and have read-only permissions. [`ci.yml`](../../.github/workflows/ci.yml), [`codeql.yml`](../../.github/workflows/codeql.yml) | T | A10 | Medium | Mitigated | Step 8 |
 | T-43 | Service-account key misuse. It is long-lived and has broad administrative rights | S, E | A6 | Medium | Open | Rotate if ever exposed, document the procedure in Step 9 |
 | T-44 | The seed script deleted all data first, so running it against production destroyed every report and user. Now the reference seed never deletes, and the demo seed needs `--demo`, refuses `NODE_ENV=production`, and replaces only `@example.com` users and their reports. [`seed.js`](../../prisma/seed.js), [`demo-seeding-policy.js`](../../prisma/seeds/demo-seeding-policy.js), tested in [`seed.test.js`](../../tests/Jest/seed.test.js) | T, D | A1, A4 | Medium | Mitigated | Done |
 | T-45 | Uploaded files are lost on redeploy if Render storage is not persistent | D | A5 | Medium | Accepted | See section 8 |
@@ -239,11 +239,11 @@ Every STRIDE category is represented at the application boundary (B1). This tabl
 | Category | Worst open example | Risk |
 |---|---|---|
 | Spoofing | T-43 service-account key misuse | Medium |
-| Tampering | T-40 vulnerable dependencies | High |
+| Tampering | None open. The Prisma CLI vulnerabilities are accepted, see section 8 | Low |
 | Repudiation | None open. Log retention and integrity are accepted, see section 8 | Low |
-| Information disclosure | T-41 a secret committed by mistake | Medium |
-| Denial of service | T-40 vulnerable dependencies | High |
-| Elevation of privilege | T-40 vulnerable dependencies | High |
+| Information disclosure | T-01 theft of the developer laptop | Medium |
+| Denial of service | None open at the application. Volumetric attacks are the provider's, see section 8 | Low |
+| Elevation of privilege | T-43 service-account key misuse | Medium |
 
 ## 8. Accepted risks and shared responsibility
 
@@ -254,6 +254,7 @@ These risks are left in place on purpose, because they are the provider's respon
 | T-02 data-centre security | Physical security belongs to Render, Neon, and Google. |
 | T-03 volumetric attacks | Mitigation happens at the provider edge. Application rate limits (Step 6) only cover abuse at the request level. |
 | T-45 upload durability | This affects availability of images, not their confidentiality. Object storage would be the proper fix, and is beyond the Level 1 scope. |
+| Prisma CLI vulnerabilities (part of T-40) | `npm audit` reports 4 high vulnerabilities in `effect` and `deepmerge-ts`, which only the Prisma command-line tool uses to read its own configuration while generating the client or running migrations. The code that serves requests (`@prisma/client`) does not contain them, so no visitor can reach them. The fix is Prisma 7, a migration of its own that Dependabot will propose. |
 | Log retention and integrity (part of T-34) | Security events go to Render's log, which keeps them only for a limited time and which anyone with access to the Render account could read. An append-only audit table or an external log service would be stronger, and is beyond the Level 1 scope. |
 | No multi-factor authentication | Firebase can provide it, but it adds significant work for a project of this size. |
 | Registration reveals taken addresses (part of T-13) | A person registering must be told that their address already has an account. Hiding it would need an email-based sign-up flow. Rate limits in Step 6 slow down anyone testing many addresses. |
@@ -274,3 +275,6 @@ These could not be confirmed from the repository, because they are settings in e
 - [ ] The developer laptop uses disk encryption (T-01).
 - [ ] On Render, `req.ip` is the visitor's own address and not that of a proxy. The rate limits count per address, so if every request seemed to come from one proxy, all visitors would share one limit (T-11, T-16).
 - [ ] `CSRF_SECRET` is set on Render to its own random value, different from the one in the local `.env` (T-30).
+- [x] GitHub secret scanning and push protection are enabled for the repository (T-41).
+- [ ] Branch protection on `main` requires pull requests, requires the CI and CodeQL checks to pass, and blocks force pushes (T-42).
+- [ ] Render runs Node 22 or later, as `package.json` requires. `firebase-admin` 14 does not support older versions.

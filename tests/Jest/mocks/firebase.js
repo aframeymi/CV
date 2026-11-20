@@ -4,7 +4,5 @@ export const createSessionCookie = jest.fn();
 export const revokeRefreshTokens = jest.fn();
 export const updateUser = jest.fn();
 
-export const admin = {
-  auth: () => ({ verifySessionCookie, createSessionCookie, revokeRefreshTokens, updateUser }),
-};
+export const auth = { verifySessionCookie, createSessionCookie, revokeRefreshTokens, updateUser };
 export const firebaseApiKey = 'test-api-key';

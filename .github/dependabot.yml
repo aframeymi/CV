@@ -1,0 +1,25 @@
+# Dependabot opens a pull request when a dependency or a GitHub Action has a newer version.
+# Each pull request runs the CI checks, so an update that breaks something cannot be merged.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    # Wait two weeks after a release, so a compromised or broken version is usually caught by others first.
+    # Security updates are not delayed by this.
+    cooldown:
+      default-days: 14
+    open-pull-requests-limit: 5
+    groups:
+      # Small updates of development tools arrive together, to keep the number of pull requests low
+      development-tools:
+        dependency-type: development
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
